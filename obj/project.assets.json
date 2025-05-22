@@ -487,11 +487,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\GitLab\\MiciomaniaBE\\MiciomaniaBE.csproj",
+      "projectUniqueName": "C:\\GitHub\\MiciomaniaBE\\MiciomaniaBE.csproj",
       "projectName": "MiciomaniaBE",
-      "projectPath": "C:\\GitLab\\MiciomaniaBE\\MiciomaniaBE.csproj",
+      "projectPath": "C:\\GitHub\\MiciomaniaBE\\MiciomaniaBE.csproj",
       "packagesPath": "C:\\Users\\adgen\\.nuget\\packages\\",
-      "outputPath": "C:\\GitLab\\MiciomaniaBE\\obj\\",
+      "outputPath": "C:\\GitHub\\MiciomaniaBE\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\adgen\\AppData\\Roaming\\NuGet\\NuGet.Config"
