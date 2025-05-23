@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace MiciomaniaNamespace.Models
+namespace MiciomaniaNamespace.Models.Manga
 {
     public class MangaUtente
     {

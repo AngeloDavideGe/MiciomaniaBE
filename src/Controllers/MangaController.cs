@@ -1,5 +1,5 @@
 using MiciomaniaNamespace.Interface;
-using MiciomaniaNamespace.Models;
+using MiciomaniaNamespace.Models.Manga;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

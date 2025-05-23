@@ -1,4 +1,4 @@
-using MiciomaniaNamespace.Models;
+using MiciomaniaNamespace.Models.Manga;
 
 namespace MiciomaniaNamespace.Interface
 {
