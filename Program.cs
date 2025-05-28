@@ -1,17 +1,31 @@
 using Microsoft.EntityFrameworkCore;
 using Miciomania.Data;
-var builder = WebApplication.CreateBuilder(args);
 
-// Aggiungi la connessione al database PostgreSQL
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+// Connessione a PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Servizi API
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Aggiungi servizi
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGenWithSecurity(); // Metodo custom per configurare Swagger con sicurezza
 
-var app = builder.Build();
+builder.Services.AddMemoryCache();
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .WithHeaders("apikey", "authorization", "content-type")
+              .AllowAnyMethod();
+    });
+});
+
+WebApplication app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
@@ -19,7 +33,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseApiKeyAndAuthorizationValidation(); // Metodo custom per validare API Key e Authorization
+app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthorization();
-app.MapControllers();
 
+app.MapControllers();
 app.Run();
