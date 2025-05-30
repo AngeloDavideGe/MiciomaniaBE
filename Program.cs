@@ -12,16 +12,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGenWithSecurity(); // Metodo custom per configurare Swagger con sicurezza
 
-builder.Services.AddMemoryCache();
-
 // CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
-              .WithHeaders("apikey", "authorization", "content-type")
-              .AllowAnyMethod();
+        policy
+            .AllowAnyOrigin() // qualsiasi origine
+            .AllowAnyHeader() // permette qualsiasi header, incluso apikey e authorization
+            .AllowAnyMethod(); // GET, POST, PUT, DELETE, etc.
     });
 });
 
@@ -33,9 +32,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors();
 app.UseApiKeyAndAuthorizationValidation(); // Metodo custom per validare API Key e Authorization
 app.UseHttpsRedirection();
-app.UseCors();
 app.UseAuthorization();
 
 app.MapControllers();

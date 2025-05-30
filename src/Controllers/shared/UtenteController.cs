@@ -1,11 +1,11 @@
-using Interfaces.UserInterfaces;
+using Miciomania.Views.UserView;
 using Miciomania.Data;
 using Miciomania.Form.Proposte;
+using Miciomania.Models.Canzoni;
 using Miciomania.Models.Manga;
 using Miciomania.Models.Proposte;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;  // <-- import per IMemoryCache
 
 namespace Controllers.UserController
 {
@@ -14,42 +14,28 @@ namespace Controllers.UserController
     public class UserController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly IMemoryCache _cache;
 
-        public UserController(ApplicationDbContext context, IMemoryCache cache)
+        public UserController(ApplicationDbContext context)
         {
             _context = context;
-            _cache = cache;
         }
 
         [HttpGet("lista_elementi_utente")]
         public async Task<ElementiUser> GetElemUtente([FromQuery] PropostaPersonaleFormModel model)
         {
-            string cacheKey = $"ElementiUser";
-
-            if (_cache.TryGetValue<ElementiUser?>(cacheKey, out var cachedData) && cachedData != null)
-            {
-                return cachedData;
-            }
-            else
-            {
-                ElementiUser result = await GetElemUtenteFromDb(model);
-                _cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
-
-                return result;
-            }
-        }
-
-        private async Task<ElementiUser> GetElemUtenteFromDb(PropostaPersonaleFormModel model)
-        {
-            var query = _context.Proposte
+            var query = _context.Proposta
                 .Where(p => p.id_utente == model.IdUtente)
-                .Join(_context.Manga,
+                .Join(_context.Canzone,
                     p => p.id_utente,
+                    c => c.id_autore,
+                    (p, c) => new { Proposta = p, Canzone = c })
+                .Join(_context.Manga,
+                    pc => pc.Proposta.id_utente,
                     m => m.id_autore,
-                    (p, m) => new ElementiUser
+                    (pc, m) => new ElementiUser
                     {
-                        Proposta = p,
+                        Proposta = pc.Proposta,
+                        Canzone = pc.Canzone,
                         Manga = m
                     });
 
@@ -59,8 +45,9 @@ namespace Controllers.UserController
             {
                 return new ElementiUser
                 {
-                    Proposta = new Proposte(),
-                    Manga = new Manga()
+                    Canzone = new Canzone(),
+                    Proposta = new Proposta(),
+                    Manga = new Manga(),
                 };
             }
 

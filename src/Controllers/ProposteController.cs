@@ -18,9 +18,9 @@ namespace Controllers.ProposteController
         }
 
         [HttpGet("lista_proposte")]
-        public async Task<List<Proposte>> GetProposte()
+        public async Task<List<Proposta>> GetProposte()
         {
-            return await _context.Proposte.ToListAsync();
+            return await _context.Proposta.ToListAsync();
         }
 
         [HttpPost("invio_proposta")]
@@ -29,21 +29,17 @@ namespace Controllers.ProposteController
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            MemoryStream memoryStream = new MemoryStream();
-            await model.File.CopyToAsync(memoryStream);
-            byte[] fileBytes = memoryStream.ToArray();
-
-            Proposte proposta = new Proposte
+            Proposta proposta = new Proposta
             {
                 id_utente = model.IdUtente,
                 tipo = model.Tipo,
                 nome = model.Nome,
                 descrizione = model.Descrizione,
                 copertina = model.Copertina,
-                file = fileBytes
+                file = model.File
             };
 
-            _context.Proposte.Add(proposta);
+            _context.Proposta.Add(proposta);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Proposta inserita con successo" });
@@ -52,13 +48,13 @@ namespace Controllers.ProposteController
         [HttpDelete("elimina_proposta")]
         public async Task<IActionResult> DeleteProposta([FromQuery] PropostaPersonaleFormModel model)
         {
-            Proposte? proposta = await _context.Proposte
+            Proposta? proposta = await _context.Proposta
                 .FirstOrDefaultAsync(p => p.id_utente == model.IdUtente);
 
             if (proposta == null)
                 return NotFound(new { message = "Proposta non trovata" });
 
-            _context.Proposte.Remove(proposta);
+            _context.Proposta.Remove(proposta);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Proposta eliminata con successo" });
