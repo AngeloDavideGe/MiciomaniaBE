@@ -23,35 +23,36 @@ namespace Controllers.UserController
         [HttpGet("lista_elementi_utente")]
         public async Task<ElementiUser> GetElemUtente([FromQuery] PropostaPersonaleFormModel model)
         {
-            var query = _context.Proposta
-                .Where(p => p.id_utente == model.IdUtente)
-                .Join(_context.Canzone,
-                    p => p.id_utente,
-                    c => c.id_autore,
-                    (p, c) => new { Proposta = p, Canzone = c })
-                .Join(_context.Manga,
-                    pc => pc.Proposta.id_utente,
-                    m => m.id_autore,
-                    (pc, m) => new ElementiUser
-                    {
-                        Proposta = pc.Proposta,
-                        Canzone = pc.Canzone,
-                        Manga = m
-                    });
-
-            ElementiUser? result = await query.FirstOrDefaultAsync();
-
-            if (result == null)
-            {
-                return new ElementiUser
+            var query =
+                from p in _context.Proposta
+                    .Where(x => x.id_utente == model.IdUtente)
+                    .Take(1)
+                    .DefaultIfEmpty()
+                join c in _context.Canzone
+                    .Where(x => x.id_autore == model.IdUtente)
+                    .Take(1)
+                    .DefaultIfEmpty() on 1 equals 1 into canzoneJoin
+                from c in canzoneJoin.DefaultIfEmpty()
+                join m in _context.Manga
+                    .Where(x => x.id_autore == model.IdUtente)
+                    .Take(1)
+                    .DefaultIfEmpty() on 1 equals 1 into mangaJoin
+                from m in mangaJoin.DefaultIfEmpty()
+                select new ElementiUser
                 {
-                    Canzone = new Canzone(),
-                    Proposta = new Proposta(),
-                    Manga = new Manga(),
+                    Proposta = p ?? new Proposta(),
+                    Canzone = c ?? new Canzone(),
+                    Manga = m ?? new Manga()
                 };
-            }
 
-            return result;
+            var result = await query.FirstOrDefaultAsync();
+
+            return result ?? new ElementiUser
+            {
+                Proposta = new Proposta(),
+                Canzone = new Canzone(),
+                Manga = new Manga()
+            };
         }
     }
 }
