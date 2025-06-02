@@ -31,25 +31,25 @@ namespace Controllers.ProposteController
 
             Proposta proposta = new Proposta
             {
-                id_utente = model.IdUtente,
+                id_autore = model.IdUtente,
                 tipo = model.Tipo,
                 nome = model.Nome,
-                descrizione = model.Descrizione,
+                genere = model.Descrizione,
                 copertina = model.Copertina,
-                file = model.File
+                link = model.File
             };
 
             _context.Proposta.Add(proposta);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Proposta inserita con successo" });
+            return Ok(proposta);
         }
 
         [HttpDelete("elimina_proposta")]
         public async Task<IActionResult> DeleteProposta([FromQuery] PropostaPersonaleFormModel model)
         {
             Proposta? proposta = await _context.Proposta
-                .FirstOrDefaultAsync(p => p.id_utente == model.IdUtente);
+                .FirstOrDefaultAsync(p => p.id_autore == model.IdUtente);
 
             if (proposta == null)
                 return NotFound(new { message = "Proposta non trovata" });

@@ -25,7 +25,7 @@ namespace Controllers.UserController
         {
             var query =
                 from p in _context.Proposta
-                    .Where(x => x.id_utente == model.IdUtente)
+                    .Where(x => x.id_autore == model.IdUtente)
                     .Take(1)
                     .DefaultIfEmpty()
                 join c in _context.Canzone

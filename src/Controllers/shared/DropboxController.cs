@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Miciomania.Views.DropboxSettings;
 
+
 [ApiController]
 [Route("api/dropbox")]
 public class DropboxController : ControllerBase
@@ -37,6 +38,6 @@ public class DropboxController : ControllerBase
         }
 
         string responseContent = await response.Content.ReadAsStringAsync();
-        return Ok(responseContent); // JSON con access_token ecc.
+        return Ok(responseContent); // Restituisce JSON con access_token ecc.
     }
 }
