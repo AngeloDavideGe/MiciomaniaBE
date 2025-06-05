@@ -1,6 +1,6 @@
 using Miciomania.Views.UserView;
-using Miciomania.Data;
-using Miciomania.Form.Proposte;
+using Miciomania.Data.ApplicationDbContext;
+using Miciomania.Forms.Proposte;
 using Miciomania.Models.Canzoni;
 using Miciomania.Models.Manga;
 using Miciomania.Models.Proposte;

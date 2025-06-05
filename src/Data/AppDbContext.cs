@@ -3,7 +3,7 @@ using Miciomania.Models.Canzoni;
 using Miciomania.Models.Proposte;
 using Microsoft.EntityFrameworkCore;
 
-namespace Miciomania.Data
+namespace Miciomania.Data.ApplicationDbContext
 {
     public class ApplicationDbContext : DbContext
     {

@@ -1,4 +1,4 @@
-using Miciomania.Data;
+using Miciomania.Data.ApplicationDbContext;
 using Miciomania.Models.Manga;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

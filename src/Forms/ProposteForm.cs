@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Miciomania.Form.Proposte
+namespace Miciomania.Forms.Proposte
 {
     public class PropostaFormModel
     {

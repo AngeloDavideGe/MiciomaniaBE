@@ -1,5 +1,5 @@
-using Miciomania.Data;
-using Miciomania.Form.Proposte;
+using Miciomania.Data.ApplicationDbContext;
+using Miciomania.Forms.Proposte;
 using Miciomania.Models.Proposte;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
