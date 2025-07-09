@@ -1,9 +1,9 @@
-using Miciomania.Models.Manga;
-using Miciomania.Models.Canzoni;
-using Miciomania.Models.Proposte;
+using Models.Manga;
+using Models.Canzoni;
+using Models.Proposte;
 using Microsoft.EntityFrameworkCore;
 
-namespace Miciomania.Data.ApplicationDbContext
+namespace Data.ApplicationDbContext
 {
     public class ApplicationDbContext : DbContext
     {

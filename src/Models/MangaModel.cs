@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Miciomania.Models.Manga
+namespace Models.Manga
 {
     [Table("manga_miciomania")]
     public class Manga

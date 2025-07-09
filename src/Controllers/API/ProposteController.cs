@@ -1,6 +1,6 @@
-using Miciomania.Data.ApplicationDbContext;
-using Miciomania.Forms.Proposte;
-using Miciomania.Models.Proposte;
+using Data.ApplicationDbContext;
+using Forms.Proposte;
+using Models.Proposte;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

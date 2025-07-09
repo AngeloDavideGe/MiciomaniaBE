@@ -1,9 +1,9 @@
-using Miciomania.Views.UserView;
-using Miciomania.Data.ApplicationDbContext;
-using Miciomania.Forms.Proposte;
-using Miciomania.Models.Canzoni;
-using Miciomania.Models.Manga;
-using Miciomania.Models.Proposte;
+using Views.UserView;
+using Data.ApplicationDbContext;
+using Forms.Proposte;
+using Models.Canzoni;
+using Models.Manga;
+using Models.Proposte;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

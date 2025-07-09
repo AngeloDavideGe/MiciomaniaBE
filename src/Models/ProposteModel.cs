@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Miciomania.Models.Proposte
+namespace Models.Proposte
 {
     [Table("proposte")]
     public class Proposta

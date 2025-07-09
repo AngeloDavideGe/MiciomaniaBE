@@ -1,5 +1,5 @@
-using Miciomania.Data.ApplicationDbContext;
-using Miciomania.Models.Canzoni;
+using Data.ApplicationDbContext;
+using Models.Canzoni;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

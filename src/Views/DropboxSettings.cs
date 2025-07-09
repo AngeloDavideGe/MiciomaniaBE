@@ -1,4 +1,4 @@
-namespace Miciomania.Views.DropboxSettings
+namespace Views.DropboxSettings
 {
     public class DropboxSettings
     {

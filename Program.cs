@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Miciomania.Data.ApplicationDbContext;
-using Miciomania.Views.DropboxSettings;
+using Data.ApplicationDbContext;
+using Views.DropboxSettings;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 

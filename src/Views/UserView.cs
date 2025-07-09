@@ -1,8 +1,8 @@
-using Miciomania.Models.Canzoni;
-using Miciomania.Models.Manga;
-using Miciomania.Models.Proposte;
+using Models.Canzoni;
+using Models.Manga;
+using Models.Proposte;
 
-namespace Miciomania.Views.UserView
+namespace Views.UserView
 {
     public class ElementiUser
     {

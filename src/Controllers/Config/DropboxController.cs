@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Miciomania.Views.DropboxSettings;
+using Views.DropboxSettings;
 
 
 [ApiController]

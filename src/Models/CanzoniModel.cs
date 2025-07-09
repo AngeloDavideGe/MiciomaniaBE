@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Miciomania.Models.Canzoni
+namespace Models.Canzoni
 {
     [Table("canzoni_miciomania")]
     public class Canzone
