@@ -42,7 +42,7 @@ namespace Data.ApplicationDbContext
 
             // Chiavi primarie composite o FK se serve
             modelBuilder.Entity<Admin>()
-                .HasKey(a => a.IdUtente);
+                .HasKey(a => a.idutente);
 
             modelBuilder.Entity<MangaUtente>()
                 .HasKey(m => m.IdUtente);
@@ -54,7 +54,7 @@ namespace Data.ApplicationDbContext
             modelBuilder.Entity<Admin>()
                 .HasOne<User>()
                 .WithOne()
-                .HasForeignKey<Admin>(a => a.IdUtente)
+                .HasForeignKey<Admin>(a => a.idutente)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<MangaUtente>()

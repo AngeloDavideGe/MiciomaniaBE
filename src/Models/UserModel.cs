@@ -2,19 +2,17 @@ namespace UserModels
 {
     public class User
     {
-        public string Id { get; set; } = "";
-        public string Nome { get; set; } = "";
-        public string Email { get; set; } = "";
-        public string Password { get; set; } = "";
-        public string ProfilePic { get; set; } = "";
-        public string Stato { get; set; } = "";
+        public string id { get; set; } = "";
+        public string nome { get; set; } = "";
+        public string email { get; set; } = "";
+        public string password { get; set; } = "";
+        public string? profilepic { get; set; } = "";
+        public string? stato { get; set; } = "";
         public string squadra { get; set; } = "";
-        public string Provincia { get; set; } = "";
-        public string Citta { get; set; } = "";
-        public int? Punteggio { get; set; }
-        public string Bio { get; set; } = "";
-        public string Telefono { get; set; } = "";
-        public DateTime? Compleanno { get; set; }
-        public string Social { get; set; } = "";
+        public string? provincia { get; set; } = "";
+        public string? bio { get; set; } = "";
+        public string? telefono { get; set; } = "";
+        public DateTime? compleanno { get; set; }
+        public string? social { get; set; } = "";
     }
 }
