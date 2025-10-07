@@ -10,7 +10,7 @@ WebApplicationOptions options = new WebApplicationOptions
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(options);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.Configure<DropboxSettings>(builder.Configuration.GetSection("Dropbox"));
@@ -50,14 +50,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseCors();
 app.UseApiKeyAndAuthorizationValidation();
-
-// app.UseWhen(
-//     context =>
-//         !context.Request.Path.StartsWithSegments("/config.runtime.json"),
-//     appBuilder =>
-//     {
-//         appBuilder.UseApiKeyAndAuthorizationValidation();
-//     });
 
 app.UseAuthorization();
 app.MapControllers();
