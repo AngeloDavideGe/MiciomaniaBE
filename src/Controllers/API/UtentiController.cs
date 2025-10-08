@@ -4,6 +4,8 @@ using Data.ApplicationDbContext;
 using UserModels;
 using UserViews;
 using AdminModels;
+using UserForms;
+using GiocatoreModels;
 
 namespace Utenti.Controllers
 {
@@ -18,7 +20,6 @@ namespace Utenti.Controllers
             _context = context;
         }
 
-        // GET: api/utenti
         [HttpGet("get_all_utenti")]
         public async Task<ActionResult<IEnumerable<UserParams>>> GetAllUtenti()
         {
@@ -31,7 +32,7 @@ namespace Utenti.Controllers
                     {
                         id = u.id,
                         nome = u.nome,
-                        profilepic = u.profilepic,
+                        profilePic = u.profilepic,
                         ruolo = a.ruolo ?? "User"
                     }
                 )
@@ -40,18 +41,158 @@ namespace Utenti.Controllers
             return Ok(utenti);
         }
 
-        // GET: api/utenti/{id}
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUtente(string id)
+        [HttpGet("get_utente_by_email")]
+        public async Task<ActionResult<UserJoin>> GetUtenteByCredentials(
+            [FromQuery] string email,
+            [FromQuery] string password)
         {
-            User? utente = await _context.Users.FindAsync(id);
+            UserJoin? utenteJoin = await _context.Users
+                .Where(u => u.email == email && u.password == password)
+                .Join(
+                    _context.Admins,
+                    (User user) => user.id,
+                    (Admin admin) => admin.idutente,
+                    (User user, Admin admin) => new { user, admin }
+                )
+                .Join(
+                    _context.Giocatori,
+                    (temp) => temp.user.id,
+                    (Giocatore giocatore) => giocatore.idutente,
+                    (temp, giocatore) => new UserJoin
+                    {
+                        id = temp.user.id,
+                        nome = temp.user.nome,
+                        email = temp.user.email,
+                        password = temp.user.password,
+                        profilepic = temp.user.profilepic,
+                        ruolo = temp.admin.ruolo,
+                        stato = temp.user.stato,
+                        squadra = temp.user.squadra,
+                        provincia = temp.user.provincia,
+                        punteggio = giocatore.punteggio,
+                        bio = temp.user.bio,
+                        telefono = temp.user.telefono,
+                        compleanno = temp.user.compleanno,
+                        social = temp.user.social
+                    }
+                )
+                .FirstOrDefaultAsync();
 
-            if (utente == null)
+            if (utenteJoin == null)
             {
                 return NotFound();
             }
 
-            return Ok(utente);
+            return Ok(utenteJoin);
+        }
+
+        [HttpPost("post_utente")]
+        public async Task<ActionResult<User>> PostUser([FromBody] UserPostForm userForm)
+        {
+            User? existingUser = await _context.Users
+                .FirstOrDefaultAsync((User u) => u.email == userForm.email);
+
+            if (existingUser != null) return Conflict("Email già registrata");
+
+            User? existingUsername = await _context.Users
+                .FirstOrDefaultAsync((User u) => u.nome == userForm.username);
+
+            if (existingUsername != null) return Conflict("Username già esistente");
+
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "SELECT utenti_schema.create_user_complete({0}, {1}, {2}, {3})",
+                    userForm.username, userForm.nome, userForm.email, userForm.password
+                );
+
+                var newUser = await _context.Users.FindAsync(userForm.username);
+                return Ok(newUser);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+        }
+
+        [HttpPut("update_utente/{id}")]
+        public async Task<ActionResult> UpdateUser(string id, [FromBody] User userForm)
+        {
+            try
+            {
+                var existingUser = await _context.Users.FindAsync(id);
+                if (existingUser == null)
+                {
+                    return NotFound("Utente non trovato");
+                }
+
+                existingUser.nome = userForm.nome;
+                existingUser.email = userForm.email;
+                existingUser.password = userForm.password;
+                existingUser.profilepic = userForm.profilepic;
+                existingUser.stato = userForm.stato;
+                existingUser.squadra = userForm.squadra;
+                existingUser.provincia = userForm.provincia;
+                existingUser.bio = userForm.bio;
+                existingUser.telefono = userForm.telefono;
+                existingUser.compleanno = userForm.compleanno;
+                existingUser.social = userForm.social;
+
+                await _context.SaveChangesAsync();
+                return Ok("Utente aggiornato con successo");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("delete_utente/{id}")]
+        public async Task<ActionResult> DeleteUser(string id)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound("Utente non trovato");
+                }
+
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+
+                return Ok("Utente eliminato con successo");
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Impossibile eliminare l'utente per vincoli di integrità referenziale");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+        }
+
+        [HttpPut("update_ruolo_admin/{idutente}")]
+        public async Task<ActionResult> UpdateRuoloAdmin(string idutente, [FromBody] string nuovoRuolo)
+        {
+            try
+            {
+                var admin = await _context.Admins.FindAsync(idutente);
+                if (admin == null)
+                {
+                    return NotFound("Admin non trovato");
+                }
+
+                admin.ruolo = nuovoRuolo;
+                await _context.SaveChangesAsync();
+
+                return Ok($"Ruolo admin aggiornato a: {nuovoRuolo}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
         }
     }
 }

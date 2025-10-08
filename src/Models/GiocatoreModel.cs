@@ -2,8 +2,8 @@ namespace GiocatoreModels
 {
     public class Giocatore
     {
-        public string IdUtente { get; set; } = "";
-        public int Punteggio { get; set; }
+        public string idutente { get; set; } = "";
+        public int punteggio { get; set; }
 
         // public User User { get; set; } // navigazione
     }

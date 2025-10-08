@@ -45,10 +45,10 @@ namespace Data.ApplicationDbContext
                 .HasKey(a => a.idutente);
 
             modelBuilder.Entity<MangaUtente>()
-                .HasKey(m => m.IdUtente);
+                .HasKey(m => m.idutente);
 
             modelBuilder.Entity<Giocatore>()
-                .HasKey(g => g.IdUtente);
+                .HasKey(g => g.idutente);
 
             // Relazioni (opzionale)
             modelBuilder.Entity<Admin>()
@@ -60,13 +60,13 @@ namespace Data.ApplicationDbContext
             modelBuilder.Entity<MangaUtente>()
                 .HasOne<User>()
                 .WithOne()
-                .HasForeignKey<MangaUtente>(m => m.IdUtente)
+                .HasForeignKey<MangaUtente>(m => m.idutente)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Giocatore>()
                 .HasOne<User>()
                 .WithOne()
-                .HasForeignKey<Giocatore>(g => g.IdUtente)
+                .HasForeignKey<Giocatore>(g => g.idutente)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
