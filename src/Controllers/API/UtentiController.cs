@@ -106,7 +106,7 @@ namespace Utenti.Controllers
                     userForm.username, userForm.nome, userForm.email, userForm.password
                 );
 
-                var newUser = await _context.Users.FindAsync(userForm.username);
+                User? newUser = await _context.Users.FindAsync(userForm.username);
                 return Ok(newUser);
             }
             catch (Exception ex)
@@ -120,7 +120,8 @@ namespace Utenti.Controllers
         {
             try
             {
-                var existingUser = await _context.Users.FindAsync(id);
+                User? existingUser = await _context.Users.FindAsync(id);
+
                 if (existingUser == null)
                 {
                     return NotFound("Utente non trovato");
@@ -152,7 +153,8 @@ namespace Utenti.Controllers
         {
             try
             {
-                var user = await _context.Users.FindAsync(id);
+                User? user = await _context.Users.FindAsync(id);
+
                 if (user == null)
                 {
                     return NotFound("Utente non trovato");
@@ -178,7 +180,7 @@ namespace Utenti.Controllers
         {
             try
             {
-                var admin = await _context.Admins.FindAsync(idutente);
+                Admin? admin = await _context.Admins.FindAsync(idutente);
                 if (admin == null)
                 {
                     return NotFound("Admin non trovato");

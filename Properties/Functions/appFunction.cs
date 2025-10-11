@@ -7,7 +7,7 @@ public static class ApiKeyMiddlewareExtensions
         return app.Use(async (context, next) =>
         {
             IHeaderDictionary headers = context.Request.Headers;
-            var config = app.ApplicationServices.GetRequiredService<IConfiguration>();
+            IConfiguration? config = app.ApplicationServices.GetRequiredService<IConfiguration>();
 
             if (!headers.TryGetValue("apikey", out StringValues apiKey) || apiKey != config["ApiKey"])
             {

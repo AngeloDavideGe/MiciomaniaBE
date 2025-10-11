@@ -7,7 +7,5 @@ namespace TweetModels
         public string Testo { get; set; } = "";
         public string IdUtente { get; set; } = "";
         public string ImmaginePost { get; set; } = "";
-
-        // public User User { get; set; } // navigazione
     }
 }

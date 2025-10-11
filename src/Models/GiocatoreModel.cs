@@ -4,7 +4,5 @@ namespace GiocatoreModels
     {
         public string idutente { get; set; } = "";
         public int punteggio { get; set; }
-
-        // public User User { get; set; } // navigazione
     }
 }

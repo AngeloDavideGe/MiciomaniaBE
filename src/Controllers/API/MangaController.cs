@@ -4,8 +4,6 @@ using Data.ApplicationDbContext;
 using MangaViews;
 using MangaModels;
 using MangaUtenteModels;
-using System.Threading.Tasks;
-
 
 namespace Manga.Controllers
 {
@@ -31,12 +29,9 @@ namespace Manga.Controllers
         [HttpGet("get_manga_preferiti")]
         public async Task<ActionResult<MangaUtente>> GetMangaPreferiti([FromQuery] string idutente)
         {
-            MangaUtenteGet mangaUtente = await GetMangaUtente(idutente) ?? new MangaUtenteGet
-            {
-                letti = "",
-                completati = "",
-                preferiti = "",
-            };
+            MangaUtenteGet mangaUtente =
+                await GetMangaUtente(idutente)
+                ?? new MangaUtenteGet("", "", "");
 
             return Ok(mangaUtente);
         }
@@ -44,7 +39,7 @@ namespace Manga.Controllers
         [HttpGet("get_all_manga_e_preferiti")]
         public async Task<ActionResult<MangaEPreferiti>> GetAllMangaEPreferiti([FromQuery] string idutente)
         {
-            MangaUtenteGet mangaUtente = new MangaUtenteGet { letti = " ", preferiti = " ", completati = " " };
+            MangaUtenteGet mangaUtente = new MangaUtenteGet("", "", "");
             List<MangaClass> mangaClass = await _context.ListaManga.ToListAsync();
 
             if (!string.IsNullOrEmpty(idutente))
@@ -59,13 +54,8 @@ namespace Manga.Controllers
         private Task<MangaUtenteGet?> GetMangaUtente(string idutente)
         {
             return _context.MangaUtenti
-                .Where(m => m.idutente == idutente)
-                .Select(m => new MangaUtenteGet
-                {
-                    letti = m.letti,
-                    preferiti = m.preferiti,
-                    completati = m.completati
-                })
+                .Where((MangaUtente m) => m.idutente == idutente)
+                .Select((MangaUtente m) => new MangaUtenteGet("", "", ""))
                 .FirstOrDefaultAsync();
         }
     }
