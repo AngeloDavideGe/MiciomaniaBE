@@ -2,10 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using UserModels;
 using TweetModels;
 using GiocatoreModels;
-using ListaMangaModels;
 using MangaUtenteModels;
 using SquadraModels;
 using AdminModels;
+using MangaModels;
 
 namespace Data.ApplicationDbContext
 {
@@ -21,7 +21,7 @@ namespace Data.ApplicationDbContext
 
         // manga_schema
         public DbSet<MangaUtente> MangaUtenti { get; set; }
-        public DbSet<ListaManga> ListaManga { get; set; }
+        public DbSet<MangaClass> ListaManga { get; set; }
 
         // squadre_schema
         public DbSet<Squadra> Squadre { get; set; }
@@ -35,7 +35,7 @@ namespace Data.ApplicationDbContext
             modelBuilder.Entity<Tweet>().ToTable("tweet", "utenti_schema");
 
             modelBuilder.Entity<MangaUtente>().ToTable("mangautente", "manga_schema");
-            modelBuilder.Entity<ListaManga>().ToTable("listamanga", "manga_schema");
+            modelBuilder.Entity<MangaClass>().ToTable("listamanga", "manga_schema");
 
             modelBuilder.Entity<Squadra>().ToTable("squadre", "squadre_schema");
             modelBuilder.Entity<Giocatore>().ToTable("giocatori", "squadre_schema");
