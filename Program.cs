@@ -10,14 +10,23 @@ WebApplicationOptions options = new WebApplicationOptions
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(options);
 
+// PRIMA registra il DbContext normale
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// POI registra la factory con una configurazione separata
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    // Aggiungi questa linea per evitare il problema di scope
+    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+}, lifetime: ServiceLifetime.Scoped); // IMPORTANTE: specifica Scoped
 
 builder.Services.Configure<DropboxSettings>(builder.Configuration.GetSection("Dropbox"));
 builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGenWithSecurity(); // Metodo custom per configurare Swagger con sicurezza
+builder.Services.AddSwaggerGenWithSecurity();
 
 builder.Services.AddCors(corsOptions =>
 {

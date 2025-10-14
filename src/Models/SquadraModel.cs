@@ -2,8 +2,8 @@ namespace SquadraModels
 {
     public class Squadra
     {
-        public int Id { get; set; }
-        public string Nome { get; set; } = "";
-        public int Punteggio { get; set; }
+        public int id { get; set; }
+        public string nome { get; set; } = "";
+        public int punteggio { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using Data.ApplicationDbContext;
 using MangaViews;
 using MangaModels;
 using MangaUtenteModels;
+using MangaForms;
 
 namespace Manga.Controllers
 {
@@ -12,10 +13,12 @@ namespace Manga.Controllers
     public class MangaController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-        public MangaController(AppDbContext context)
+        public MangaController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory)
         {
             _context = context;
+            _contextFactory = contextFactory;
         }
 
         [HttpGet("get_all_manga")]
@@ -30,7 +33,7 @@ namespace Manga.Controllers
         public async Task<ActionResult<MangaUtente>> GetMangaPreferiti([FromQuery] string idutente)
         {
             MangaUtenteGet mangaUtente =
-                await GetMangaUtente(idutente)
+                await GetMangaUtente(_context, idutente)
                 ?? new MangaUtenteGet("", "", "");
 
             return Ok(mangaUtente);
@@ -39,24 +42,80 @@ namespace Manga.Controllers
         [HttpGet("get_all_manga_e_preferiti")]
         public async Task<ActionResult<MangaEPreferiti>> GetAllMangaEPreferiti([FromQuery] string idutente)
         {
-            MangaUtenteGet mangaUtente = new MangaUtenteGet("", "", "");
-            List<MangaClass> mangaClass = await _context.ListaManga.ToListAsync();
-
-            if (!string.IsNullOrEmpty(idutente))
+            try
             {
-                mangaUtente = await GetMangaUtente(idutente) ?? mangaUtente;
-            }
+                Task<List<MangaClass>> mangaTask = _context.ListaManga.ToListAsync();
+                Task<MangaUtenteGet?> mangaUtenteTask;
 
-            MangaEPreferiti mangaEPreferiti = new MangaEPreferiti(mangaClass, mangaUtente);
-            return Ok(mangaEPreferiti);
+                if (!string.IsNullOrEmpty(idutente))
+                {
+                    using (var newContext = _contextFactory.CreateDbContext())
+                    {
+                        mangaUtenteTask = GetMangaUtente(newContext, idutente);
+                        await Task.WhenAll(mangaTask, mangaUtenteTask);
+                    }
+                }
+                else
+                {
+                    await mangaTask;
+                    mangaUtenteTask = Task.FromResult<MangaUtenteGet?>(null);
+                }
+
+                List<MangaClass> mangaClass = mangaTask.Result;
+                MangaUtenteGet mangaUtente = mangaUtenteTask.Result ?? new MangaUtenteGet("", "", "");
+
+                MangaEPreferiti mangaEPreferiti = new MangaEPreferiti(mangaClass, mangaUtente);
+                return Ok(mangaEPreferiti);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
         }
 
-        private Task<MangaUtenteGet?> GetMangaUtente(string idutente)
+        private Task<MangaUtenteGet?> GetMangaUtente(AppDbContext context, string idutente)
         {
-            return _context.MangaUtenti
+            return context.MangaUtenti
                 .Where((MangaUtente m) => m.idutente == idutente)
-                .Select((MangaUtente m) => new MangaUtenteGet("", "", ""))
+                .Select((MangaUtente m) => new MangaUtenteGet(m.preferiti, m.letti, m.completati))
                 .FirstOrDefaultAsync();
+        }
+
+        [HttpPut("upsert_manga_preferiti/{idutente}")]
+        public async Task<ActionResult> UpdateMangaPreferiti(string idutente, [FromBody] MangaUtenteForm nuoviManga)
+        {
+            try
+            {
+                MangaUtente? mangaUtente = await _context.MangaUtenti
+                    .FirstOrDefaultAsync(mu => mu.idutente == idutente);
+
+                if (mangaUtente == null)
+                {
+                    mangaUtente = new MangaUtente
+                    {
+                        idutente = idutente,
+                        letti = nuoviManga.letti,
+                        completati = nuoviManga.completati,
+                        preferiti = nuoviManga.preferiti
+                    };
+                    _context.MangaUtenti.Add(mangaUtente);
+                }
+                else
+                {
+                    mangaUtente.letti = nuoviManga.letti ?? mangaUtente.letti;
+                    mangaUtente.completati = nuoviManga.completati ?? mangaUtente.completati;
+                    mangaUtente.preferiti = nuoviManga.preferiti ?? mangaUtente.preferiti;
+                    _context.MangaUtenti.Update(mangaUtente);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok($"Manga Utente aggiornati per l'utente {idutente}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
         }
     }
 }

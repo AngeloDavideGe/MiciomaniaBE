@@ -87,17 +87,12 @@ namespace Utenti.Controllers
         }
 
         [HttpPost("post_utente")]
-        public async Task<ActionResult<User>> PostUser([FromBody] UserPostForm userForm)
+        public async Task<ActionResult> PostUser([FromBody] UserPostForm userForm)
         {
             User? existingUser = await _context.Users
-                .FirstOrDefaultAsync((User u) => u.email == userForm.email);
+                .FirstOrDefaultAsync((User u) => u.id == userForm.nome);
 
-            if (existingUser != null) return Conflict("Email già registrata");
-
-            User? existingUsername = await _context.Users
-                .FirstOrDefaultAsync((User u) => u.nome == userForm.username);
-
-            if (existingUsername != null) return Conflict("Username già esistente");
+            if (existingUser != null) return Conflict("Username già esistente");
 
             try
             {
@@ -106,8 +101,7 @@ namespace Utenti.Controllers
                     userForm.username, userForm.nome, userForm.email, userForm.password
                 );
 
-                User? newUser = await _context.Users.FindAsync(userForm.username);
-                return Ok(newUser);
+                return Ok("Utente aggiornato con successo");
             }
             catch (Exception ex)
             {
