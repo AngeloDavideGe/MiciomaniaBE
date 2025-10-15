@@ -53,12 +53,12 @@ namespace Squadre.Controllers
             }
         }
 
-        [HttpPut("update_punteggio_giocatore/{idutente}")]
-        public async Task<ActionResult> UpdatePunteggioGiocatore(string idutente, [FromBody] int nuovoPunteggio)
+        [HttpPut("update_punteggio_giocatore/{idUtente}")]
+        public async Task<ActionResult> UpdatePunteggioGiocatore(string idUtente, [FromBody] int nuovoPunteggio)
         {
             try
             {
-                Giocatore? giocatore = await _context.Giocatori.FindAsync(idutente);
+                Giocatore? giocatore = await _context.Giocatori.FindAsync(idUtente);
                 if (giocatore == null)
                 {
                     return NotFound("Giocatore non trovato");

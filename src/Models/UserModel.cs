@@ -6,7 +6,7 @@ namespace UserModels
         public string nome { get; set; } = "";
         public string email { get; set; } = "";
         public string password { get; set; } = "";
-        public string? profilepic { get; set; } = "";
+        public string? profilePic { get; set; } = "";
         public string? stato { get; set; } = "";
         public string squadra { get; set; } = "";
         public string? provincia { get; set; } = "";

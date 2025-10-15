@@ -27,12 +27,12 @@ namespace Utenti.Controllers
                 .Join(
                     _context.Admins,
                     (User u) => u.id,
-                    (Admin a) => a.idutente,
+                    (Admin a) => a.idUtente,
                     (User u, Admin a) => new UserParams
                     {
                         id = u.id,
                         nome = u.nome,
-                        profilePic = u.profilepic,
+                        profilePic = u.profilePic,
                         ruolo = a.ruolo ?? "User"
                     }
                 )
@@ -51,20 +51,20 @@ namespace Utenti.Controllers
                 .Join(
                     _context.Admins,
                     (User user) => user.id,
-                    (Admin admin) => admin.idutente,
+                    (Admin admin) => admin.idUtente,
                     (User user, Admin admin) => new { user, admin }
                 )
                 .Join(
                     _context.Giocatori,
                     (temp) => temp.user.id,
-                    (Giocatore giocatore) => giocatore.idutente,
+                    (Giocatore giocatore) => giocatore.idUtente,
                     (temp, giocatore) => new UserJoin
                     {
                         id = temp.user.id,
                         nome = temp.user.nome,
                         email = temp.user.email,
                         password = temp.user.password,
-                        profilepic = temp.user.profilepic,
+                        profilePic = temp.user.profilePic,
                         ruolo = temp.admin.ruolo,
                         stato = temp.user.stato,
                         squadra = temp.user.squadra,
@@ -124,7 +124,7 @@ namespace Utenti.Controllers
                 existingUser.nome = userForm.nome;
                 existingUser.email = userForm.email;
                 existingUser.password = userForm.password;
-                existingUser.profilepic = userForm.profilepic;
+                existingUser.profilePic = userForm.profilePic;
                 existingUser.stato = userForm.stato;
                 existingUser.squadra = userForm.squadra;
                 existingUser.provincia = userForm.provincia;
@@ -169,12 +169,12 @@ namespace Utenti.Controllers
             }
         }
 
-        [HttpPut("update_ruolo_admin/{idutente}")]
-        public async Task<ActionResult> UpdateRuoloAdmin(string idutente, [FromBody] string nuovoRuolo)
+        [HttpPut("update_ruolo_admin/{idUtente}")]
+        public async Task<ActionResult> UpdateRuoloAdmin(string idUtente, [FromBody] string nuovoRuolo)
         {
             try
             {
-                Admin? admin = await _context.Admins.FindAsync(idutente);
+                Admin? admin = await _context.Admins.FindAsync(idUtente);
                 if (admin == null)
                 {
                     return NotFound("Admin non trovato");

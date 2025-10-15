@@ -24,19 +24,19 @@ namespace Posts.Controllers
         public async Task<ActionResult<IEnumerable<TweetExtend>>> GetAllLastPosts([FromQuery] DateTime time)
         {
             List<TweetExtend> tweetExtend = await _context.Tweets
-                .Where((Tweet tweet) => tweet.datacreazione > time)
+                .Where((Tweet tweet) => tweet.dataCreazione > time)
                 .Join(
                     _context.Users,
-                    (Tweet tweet) => tweet.idutente,
+                    (Tweet tweet) => tweet.idUtente,
                     (User user) => user.id,
                     (Tweet tweet, User user) => new TweetExtend
                     {
                         id = tweet.id,
-                        datacreazione = tweet.datacreazione,
+                        dataCreazione = tweet.dataCreazione,
                         testo = tweet.testo,
-                        idutente = tweet.idutente,
-                        immaginepost = tweet.immaginepost,
-                        userProfilePic = user.profilepic,
+                        idUtente = tweet.idUtente,
+                        immaginePost = tweet.immaginePost,
+                        userProfilePic = user.profilePic,
                         userName = user.nome
                     }
                 )
@@ -46,16 +46,16 @@ namespace Posts.Controllers
         }
 
         [HttpGet("get_profilo")]
-        public async Task<ActionResult<Profilo>> GetProfiloById([FromQuery] string idutente)
+        public async Task<ActionResult<Profilo>> GetProfiloById([FromQuery] string idUtente)
         {
             try
             {
                 using (AppDbContext newContext = _contextFactory.CreateDbContext())
                 {
-                    Task<User?> utenteTask = _context.Users.FirstOrDefaultAsync((User u) => u.id == idutente);
+                    Task<User?> utenteTask = _context.Users.FirstOrDefaultAsync((User u) => u.id == idUtente);
                     Task<List<Tweet>> tweetsTask = newContext.Tweets
-                        .Where((Tweet t) => t.idutente == idutente)
-                        .OrderByDescending((Tweet tweet) => tweet.datacreazione)
+                        .Where((Tweet t) => t.idUtente == idUtente)
+                        .OrderByDescending((Tweet tweet) => tweet.dataCreazione)
                         .Take(20)
                         .ToListAsync();
 

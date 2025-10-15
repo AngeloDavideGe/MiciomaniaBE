@@ -2,7 +2,7 @@ namespace GiocatoreModels
 {
     public class Giocatore
     {
-        public string idutente { get; set; } = "";
+        public string idUtente { get; set; } = "";
         public int punteggio { get; set; }
     }
 }

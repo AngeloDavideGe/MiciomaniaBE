@@ -30,29 +30,29 @@ namespace Manga.Controllers
         }
 
         [HttpGet("get_manga_preferiti")]
-        public async Task<ActionResult<MangaUtente>> GetMangaPreferiti([FromQuery] string idutente)
+        public async Task<ActionResult<MangaUtente>> GetMangaPreferiti([FromQuery] string idUtente)
         {
             MangaUtenteGet mangaUtente =
-                await GetMangaUtente(_context, idutente)
+                await GetMangaUtente(_context, idUtente)
                 ?? new MangaUtenteGet("", "", "");
 
             return Ok(mangaUtente);
         }
 
         [HttpGet("get_all_manga_e_preferiti")]
-        public async Task<ActionResult<MangaEPreferiti>> GetAllMangaEPreferiti([FromQuery] string idutente)
+        public async Task<ActionResult<MangaEPreferiti>> GetAllMangaEPreferiti([FromQuery] string idUtente)
         {
             try
             {
                 Task<List<MangaClass>> mangaTask;
                 Task<MangaUtenteGet?> mangaUtenteTask;
 
-                if (!string.IsNullOrEmpty(idutente))
+                if (!string.IsNullOrEmpty(idUtente))
                 {
                     using (AppDbContext newContext = _contextFactory.CreateDbContext())
                     {
-                        mangaTask = newContext.ListaManga.ToListAsync();
-                        mangaUtenteTask = GetMangaUtente(newContext, idutente);
+                        mangaTask = _context.ListaManga.ToListAsync();
+                        mangaUtenteTask = GetMangaUtente(newContext, idUtente);
 
                         await Task.WhenAll(mangaTask, mangaUtenteTask);
                     }
@@ -78,27 +78,27 @@ namespace Manga.Controllers
             }
         }
 
-        private Task<MangaUtenteGet?> GetMangaUtente(AppDbContext context, string idutente)
+        private Task<MangaUtenteGet?> GetMangaUtente(AppDbContext context, string idUtente)
         {
             return context.MangaUtenti
-                .Where((MangaUtente m) => m.idutente == idutente)
+                .Where((MangaUtente m) => m.idUtente == idUtente)
                 .Select((MangaUtente m) => new MangaUtenteGet(m.preferiti, m.letti, m.completati))
                 .FirstOrDefaultAsync();
         }
 
-        [HttpPut("upsert_manga_preferiti/{idutente}")]
-        public async Task<ActionResult> UpdateMangaPreferiti(string idutente, [FromBody] MangaUtenteForm nuoviManga)
+        [HttpPut("upsert_manga_preferiti/{idUtente}")]
+        public async Task<ActionResult> UpdateMangaPreferiti(string idUtente, [FromBody] MangaUtenteForm nuoviManga)
         {
             try
             {
                 MangaUtente? mangaUtente = await _context.MangaUtenti
-                    .FirstOrDefaultAsync((MangaUtente mu) => mu.idutente == idutente);
+                    .FirstOrDefaultAsync((MangaUtente mu) => mu.idUtente == idUtente);
 
                 if (mangaUtente == null)
                 {
                     mangaUtente = new MangaUtente
                     {
-                        idutente = idutente,
+                        idUtente = idUtente,
                         letti = nuoviManga.letti,
                         completati = nuoviManga.completati,
                         preferiti = nuoviManga.preferiti
@@ -115,7 +115,7 @@ namespace Manga.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return Ok($"Manga Utente aggiornati per l'utente {idutente}");
+                return Ok($"Manga Utente aggiornati per l'utente {idUtente}");
             }
             catch (Exception ex)
             {

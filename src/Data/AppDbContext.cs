@@ -42,40 +42,40 @@ namespace Data.ApplicationDbContext
 
             // Chiavi primarie composite o FK se serve
             modelBuilder.Entity<Admin>()
-                .HasKey(a => a.idutente);
+                .HasKey(a => a.idUtente);
 
             modelBuilder.Entity<Tweet>()
-                .HasKey(a => a.idutente);
+                .HasKey(a => a.idUtente);
 
             modelBuilder.Entity<MangaUtente>()
-                .HasKey(m => m.idutente);
+                .HasKey(m => m.idUtente);
 
             modelBuilder.Entity<Giocatore>()
-                .HasKey(g => g.idutente);
+                .HasKey(g => g.idUtente);
 
             // Relazioni (opzionale)
             modelBuilder.Entity<Admin>()
                 .HasOne<User>()
                 .WithOne()
-                .HasForeignKey<Admin>(a => a.idutente)
+                .HasForeignKey<Admin>(a => a.idUtente)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Tweet>()
                 .HasOne<User>()
                 .WithOne()
-                .HasForeignKey<Tweet>(a => a.idutente)
+                .HasForeignKey<Tweet>(a => a.idUtente)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<MangaUtente>()
                 .HasOne<User>()
                 .WithOne()
-                .HasForeignKey<MangaUtente>(m => m.idutente)
+                .HasForeignKey<MangaUtente>(m => m.idUtente)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Giocatore>()
                 .HasOne<User>()
                 .WithOne()
-                .HasForeignKey<Giocatore>(g => g.idutente)
+                .HasForeignKey<Giocatore>(g => g.idUtente)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

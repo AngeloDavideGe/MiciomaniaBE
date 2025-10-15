@@ -2,7 +2,7 @@ namespace AdminModels
 {
     public class Admin
     {
-        public string idutente { get; set; } = "";
+        public string idUtente { get; set; } = "";
         public string ruolo { get; set; } = "";
     }
 }
