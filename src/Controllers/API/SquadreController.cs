@@ -25,31 +25,27 @@ namespace Squadre.Controllers
         {
             try
             {
-                Task<List<SquadraView>> squadreTask = _context.Squadre
-                    .Select((Squadra s) => new SquadraView
-                    {
-                        nome = s.nome,
-                        punteggio = s.punteggio
-                    })
-                    .ToListAsync();
-
-                Task<List<Giocatore>> topGiocatoriTask;
-                using (var newContext = _contextFactory.CreateDbContext())
+                using (AppDbContext newContext = _contextFactory.CreateDbContext())
                 {
-                    topGiocatoriTask = newContext.Giocatori
+                    Task<List<SquadraView>> squadreTask = _context.Squadre
+                        .Select((Squadra s) => new SquadraView
+                        {
+                            nome = s.nome,
+                            punteggio = s.punteggio
+                        })
+                        .ToListAsync();
+
+                    Task<List<Giocatore>> topGiocatoriTask = newContext.Giocatori
                         .Where((Giocatore g) => g.punteggio > 0)
                         .OrderByDescending((Giocatore g) => g.punteggio)
                         .Take(5)
                         .ToListAsync();
 
                     await Task.WhenAll(squadreTask, topGiocatoriTask);
+
+                    SquadreGiocatori result = new SquadreGiocatori(squadreTask.Result, topGiocatoriTask.Result);
+                    return Ok(result);
                 }
-
-                List<SquadraView> squadre = squadreTask.Result;
-                List<Giocatore> topGiocatori = topGiocatoriTask.Result;
-
-                SquadreGiocatori result = new SquadreGiocatori(squadre, topGiocatori);
-                return Ok(result);
             }
             catch (Exception ex)
             {

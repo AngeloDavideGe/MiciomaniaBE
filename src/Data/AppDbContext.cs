@@ -44,6 +44,9 @@ namespace Data.ApplicationDbContext
             modelBuilder.Entity<Admin>()
                 .HasKey(a => a.idutente);
 
+            modelBuilder.Entity<Tweet>()
+                .HasKey(a => a.idutente);
+
             modelBuilder.Entity<MangaUtente>()
                 .HasKey(m => m.idutente);
 
@@ -55,6 +58,12 @@ namespace Data.ApplicationDbContext
                 .HasOne<User>()
                 .WithOne()
                 .HasForeignKey<Admin>(a => a.idutente)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Tweet>()
+                .HasOne<User>()
+                .WithOne()
+                .HasForeignKey<Tweet>(a => a.idutente)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<MangaUtente>()

@@ -44,27 +44,32 @@ namespace Manga.Controllers
         {
             try
             {
-                Task<List<MangaClass>> mangaTask = _context.ListaManga.ToListAsync();
+                Task<List<MangaClass>> mangaTask;
                 Task<MangaUtenteGet?> mangaUtenteTask;
 
                 if (!string.IsNullOrEmpty(idutente))
                 {
-                    using (var newContext = _contextFactory.CreateDbContext())
+                    using (AppDbContext newContext = _contextFactory.CreateDbContext())
                     {
+                        mangaTask = newContext.ListaManga.ToListAsync();
                         mangaUtenteTask = GetMangaUtente(newContext, idutente);
+
                         await Task.WhenAll(mangaTask, mangaUtenteTask);
                     }
                 }
                 else
                 {
-                    await mangaTask;
+                    mangaTask = _context.ListaManga.ToListAsync();
                     mangaUtenteTask = Task.FromResult<MangaUtenteGet?>(null);
+
+                    await mangaTask;
                 }
 
-                List<MangaClass> mangaClass = mangaTask.Result;
-                MangaUtenteGet mangaUtente = mangaUtenteTask.Result ?? new MangaUtenteGet("", "", "");
+                MangaEPreferiti mangaEPreferiti = new MangaEPreferiti(
+                    mangaTask.Result,
+                    mangaUtenteTask.Result ?? new MangaUtenteGet("", "", "")
+                );
 
-                MangaEPreferiti mangaEPreferiti = new MangaEPreferiti(mangaClass, mangaUtente);
                 return Ok(mangaEPreferiti);
             }
             catch (Exception ex)
@@ -87,7 +92,7 @@ namespace Manga.Controllers
             try
             {
                 MangaUtente? mangaUtente = await _context.MangaUtenti
-                    .FirstOrDefaultAsync(mu => mu.idutente == idutente);
+                    .FirstOrDefaultAsync((MangaUtente mu) => mu.idutente == idutente);
 
                 if (mangaUtente == null)
                 {

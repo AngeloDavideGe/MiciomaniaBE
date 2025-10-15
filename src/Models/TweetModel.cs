@@ -2,10 +2,10 @@ namespace TweetModels
 {
     public class Tweet
     {
-        public int Id { get; set; }
-        public DateTime DataCreazione { get; set; }
-        public string Testo { get; set; } = "";
-        public string IdUtente { get; set; } = "";
-        public string ImmaginePost { get; set; } = "";
+        public int id { get; set; }
+        public DateTime datacreazione { get; set; }
+        public string testo { get; set; } = "";
+        public string idutente { get; set; } = "";
+        public string? immaginepost { get; set; } = "";
     }
 }
