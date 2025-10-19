@@ -23,6 +23,6 @@ namespace UserViews
         public string? bio { get; set; } = "";
         public string? telefono { get; set; } = "";
         public DateTime? compleanno { get; set; }
-        public string? social { get; set; } = "";
+        public Dictionary<string, string>? social { get; set; }
     }
 }

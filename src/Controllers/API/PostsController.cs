@@ -4,6 +4,7 @@ using Data.ApplicationDbContext;
 using PostsViews;
 using TweetModels;
 using UserModels;
+using PostsForms;
 
 namespace Posts.Controllers
 {
@@ -65,6 +66,57 @@ namespace Posts.Controllers
 
                     return Ok(profilo);
                 }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+        }
+
+        [HttpPost("post_tweet")]
+        public async Task<ActionResult> PostTweet([FromBody] PostsUtenteForm postForm)
+        {
+            try
+            {
+                Tweet newTweet = new Tweet
+                {
+                    dataCreazione = DateTime.UtcNow,
+                    testo = postForm.testo,
+                    idUtente = postForm.idUtente,
+                    immaginePost = postForm.immaginePost
+                };
+
+                _context.Tweets.Add(newTweet);
+                await _context.SaveChangesAsync();
+
+                return Ok("Tweet aggiunto con successo");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex}");
+            }
+        }
+
+        [HttpDelete("delete_post/{id}")]
+        public async Task<ActionResult> DeletePost(int id)
+        {
+            try
+            {
+                Tweet? tweet = await _context.Tweets.FindAsync(id);
+
+                if (tweet == null)
+                {
+                    return NotFound("Tweet non trovato");
+                }
+
+                _context.Tweets.Remove(tweet);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Tweet eliminato con successo" });
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Impossibile eliminare il tweet per vincoli di integrità referenziale");
             }
             catch (Exception ex)
             {

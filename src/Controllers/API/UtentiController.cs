@@ -134,7 +134,7 @@ namespace Utenti.Controllers
                 existingUser.social = userForm.social;
 
                 await _context.SaveChangesAsync();
-                return Ok("Utente aggiornato con successo");
+                return Ok(new { message = "Utente aggiornato con successo" });
             }
             catch (Exception ex)
             {
@@ -157,7 +157,7 @@ namespace Utenti.Controllers
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
 
-                return Ok("Utente eliminato con successo");
+                return Ok(new { message = "Utente eliminato con successo" });
             }
             catch (DbUpdateException)
             {
@@ -183,7 +183,7 @@ namespace Utenti.Controllers
                 admin.ruolo = nuovoRuolo;
                 await _context.SaveChangesAsync();
 
-                return Ok($"Ruolo admin aggiornato a: {nuovoRuolo}");
+                return Ok(new { message = "Ruolo aggiornato con successo" });
             }
             catch (Exception ex)
             {

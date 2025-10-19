@@ -40,43 +40,45 @@ namespace Data.ApplicationDbContext
             modelBuilder.Entity<Squadra>().ToTable("squadre", "squadre_schema");
             modelBuilder.Entity<Giocatore>().ToTable("giocatori", "squadre_schema");
 
-            // Chiavi primarie composite o FK se serve
-            modelBuilder.Entity<Admin>()
-                .HasKey(a => a.idUtente);
+            modelBuilder.Entity<Tweet>(entity =>
+            {
+                entity.HasKey(t => t.id);
 
-            modelBuilder.Entity<Tweet>()
-                .HasKey(a => a.idUtente);
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(t => t.idUtente)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
-            modelBuilder.Entity<MangaUtente>()
-                .HasKey(m => m.idUtente);
+            modelBuilder.Entity<Admin>(entity =>
+            {
+                entity.HasKey(a => a.idUtente);
 
-            modelBuilder.Entity<Giocatore>()
-                .HasKey(g => g.idUtente);
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<Admin>(a => a.idUtente)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
-            // Relazioni (opzionale)
-            modelBuilder.Entity<Admin>()
-                .HasOne<User>()
-                .WithOne()
-                .HasForeignKey<Admin>(a => a.idUtente)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<MangaUtente>(entity =>
+            {
+                entity.HasKey(m => m.idUtente);
 
-            modelBuilder.Entity<Tweet>()
-                .HasOne<User>()
-                .WithOne()
-                .HasForeignKey<Tweet>(a => a.idUtente)
-                .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<MangaUtente>(m => m.idUtente)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
-            modelBuilder.Entity<MangaUtente>()
-                .HasOne<User>()
-                .WithOne()
-                .HasForeignKey<MangaUtente>(m => m.idUtente)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Giocatore>(entity =>
+            {
+                entity.HasKey(g => g.idUtente);
 
-            modelBuilder.Entity<Giocatore>()
-                .HasOne<User>()
-                .WithOne()
-                .HasForeignKey<Giocatore>(g => g.idUtente)
-                .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<Giocatore>(g => g.idUtente)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

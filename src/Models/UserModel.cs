@@ -1,8 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace UserModels
 {
     public class User
     {
-        public string id { get; set; } = "";
+        [Key] public string id { get; set; } = "";
         public string nome { get; set; } = "";
         public string email { get; set; } = "";
         public string password { get; set; } = "";
@@ -13,6 +15,6 @@ namespace UserModels
         public string? bio { get; set; } = "";
         public string? telefono { get; set; } = "";
         public DateTime? compleanno { get; set; }
-        public string? social { get; set; } = "";
+        public Dictionary<string, string>? social { get; set; }
     }
 }
