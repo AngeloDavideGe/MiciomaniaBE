@@ -6,6 +6,7 @@ using UserViews;
 using AdminModels;
 using UserForms;
 using GiocatoreModels;
+using Npgsql;
 
 namespace Utenti.Controllers
 {
@@ -67,7 +68,7 @@ namespace Utenti.Controllers
                         profilePic = temp.user.profilePic,
                         ruolo = temp.admin.ruolo,
                         stato = temp.user.stato,
-                        squadra = temp.user.squadra,
+                        squadra = giocatore.squadra,
                         provincia = temp.user.provincia,
                         punteggio = giocatore.punteggio,
                         bio = temp.user.bio,
@@ -110,31 +111,32 @@ namespace Utenti.Controllers
         }
 
         [HttpPut("update_utente/{id}")]
-        public async Task<ActionResult> UpdateUser(string id, [FromBody] User userForm)
+        public async Task<ActionResult> UpdateUser(string id, [FromBody] UserUpdate userForm)
         {
             try
             {
-                User? existingUser = await _context.Users.FindAsync(id);
-
-                if (existingUser == null)
+                var compleannoParam = new NpgsqlParameter("compleanno", NpgsqlTypes.NpgsqlDbType.Timestamp)
                 {
-                    return NotFound("Utente non trovato");
-                }
+                    Value = DateTime.SpecifyKind(userForm.compleanno, DateTimeKind.Unspecified)
+                };
 
-                existingUser.nome = userForm.nome;
-                existingUser.email = userForm.email;
-                existingUser.password = userForm.password;
-                existingUser.profilePic = userForm.profilePic;
-                existingUser.stato = userForm.stato;
-                existingUser.squadra = userForm.squadra;
-                existingUser.provincia = userForm.provincia;
-                existingUser.bio = userForm.bio;
-                existingUser.telefono = userForm.telefono;
-                existingUser.compleanno = userForm.compleanno;
-                existingUser.social = userForm.social;
+                await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $@"SELECT utenti_schema.update_user_complete(
+                        {id}, 
+                        {userForm.nome}, 
+                        {userForm.email}, 
+                        {userForm.password}, 
+                        {userForm.profilePic}, 
+                        {userForm.stato}, 
+                        {userForm.provincia}, 
+                        {userForm.bio}, 
+                        {userForm.telefono}, 
+                        {userForm.squadra}, 
+                        {compleannoParam}
+                    )"
+                );
 
-                await _context.SaveChangesAsync();
-                return Ok(new { message = "Utente aggiornato con successo" });
+                return Ok("Utente aggiornato con successo");
             }
             catch (Exception ex)
             {

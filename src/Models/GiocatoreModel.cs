@@ -4,5 +4,6 @@ namespace GiocatoreModels
     {
         public string idUtente { get; set; } = "";
         public int punteggio { get; set; }
+        public string squadra { get; set; } = "";
     }
 }

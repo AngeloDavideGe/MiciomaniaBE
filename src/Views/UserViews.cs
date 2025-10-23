@@ -25,4 +25,18 @@ namespace UserViews
         public DateTime? compleanno { get; set; }
         public Dictionary<string, string>? social { get; set; }
     }
+
+    public class UserUpdate
+    {
+        public string nome { get; set; } = "";
+        public string email { get; set; } = "";
+        public string password { get; set; } = "";
+        public string profilePic { get; set; } = "";
+        public string stato { get; set; } = "";
+        public string provincia { get; set; } = "";
+        public string bio { get; set; } = "";
+        public string telefono { get; set; } = "";
+        public string squadra { get; set; } = "";
+        public DateTime compleanno { get; set; }
+    }
 }

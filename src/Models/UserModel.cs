@@ -10,7 +10,6 @@ namespace UserModels
         public string password { get; set; } = "";
         public string? profilePic { get; set; } = "";
         public string? stato { get; set; } = "";
-        public string squadra { get; set; } = "";
         public string? provincia { get; set; } = "";
         public string? bio { get; set; } = "";
         public string? telefono { get; set; } = "";
