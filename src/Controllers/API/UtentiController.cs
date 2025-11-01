@@ -136,7 +136,7 @@ namespace Utenti.Controllers
                     )"
                 );
 
-                return Ok("Utente aggiornato con successo");
+                return Ok(new { message = "Utente aggiornato con successo" });
             }
             catch (Exception ex)
             {
