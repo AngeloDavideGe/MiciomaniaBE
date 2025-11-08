@@ -7,6 +7,7 @@ using AdminModels;
 using UserForms;
 using GiocatoreModels;
 using Npgsql;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Utenti.Controllers
 {
@@ -15,31 +16,40 @@ namespace Utenti.Controllers
     public class UtentiController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(24);
 
-        public UtentiController(AppDbContext context)
+        public UtentiController(AppDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         [HttpGet("get_all_utenti")]
         public async Task<ActionResult<IEnumerable<UserParams>>> GetAllUtenti()
         {
-            List<UserParams> utenti = await _context.Users
-                .Join(
-                    _context.Admins,
-                    (User u) => u.id,
-                    (Admin a) => a.idUtente,
-                    (User u, Admin a) => new UserParams
-                    {
-                        id = u.id,
-                        nome = u.nome,
-                        profilePic = u.profilePic,
-                        ruolo = a.ruolo ?? "User"
-                    }
-                )
-                .ToListAsync();
+            List<UserParams>? utenti = await _cache.GetOrCreateAsync("AllUtentiCache", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
+                entry.SetPriority(CacheItemPriority.Normal);
 
-            return Ok(utenti);
+                return await _context.Users
+                    .Join(
+                        _context.Admins,
+                        (User u) => u.id,
+                        (Admin a) => a.idUtente,
+                        (User u, Admin a) => new UserParams
+                        {
+                            id = u.id,
+                            nome = u.nome,
+                            profilePic = u.profilePic,
+                            ruolo = a.ruolo ?? "User"
+                        }
+                    )
+                    .ToListAsync();
+            });
+
+            return Ok(utenti ?? new List<UserParams>());
         }
 
         [HttpGet("get_utente_by_email")]

@@ -5,6 +5,7 @@ using MangaViews;
 using MangaModels;
 using MangaUtenteModels;
 using MangaForms;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Manga.Controllers
 {
@@ -14,18 +15,20 @@ namespace Manga.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IDbContextFactory<AppDbContext> _contextFactory;
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(24);
 
-        public MangaController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory)
+        public MangaController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory, IMemoryCache cache)
         {
             _context = context;
             _contextFactory = contextFactory;
+            _cache = cache;
         }
 
         [HttpGet("get_all_manga")]
-        public async Task<ActionResult<MangaUtente>> GetAllManga()
+        public async Task<ActionResult<List<MangaClass>>> GetAllManga()
         {
-            List<MangaClass> listaManga = await _context.ListaManga.ToListAsync();
-
+            List<MangaClass> listaManga = await GetAllMangaCache(_context);
             return Ok(listaManga);
         }
 
@@ -51,7 +54,7 @@ namespace Manga.Controllers
                 {
                     using (AppDbContext newContext = _contextFactory.CreateDbContext())
                     {
-                        mangaTask = _context.ListaManga.ToListAsync();
+                        mangaTask = GetAllMangaCache(_context);
                         mangaUtenteTask = GetMangaUtente(newContext, idUtente);
 
                         await Task.WhenAll(mangaTask, mangaUtenteTask);
@@ -59,7 +62,7 @@ namespace Manga.Controllers
                 }
                 else
                 {
-                    mangaTask = _context.ListaManga.ToListAsync();
+                    mangaTask = GetAllMangaCache(_context);
                     mangaUtenteTask = Task.FromResult<MangaUtenteGet?>(null);
 
                     await mangaTask;
@@ -76,14 +79,6 @@ namespace Manga.Controllers
             {
                 return StatusCode(500, $"Errore interno del server: {ex.Message}");
             }
-        }
-
-        private Task<MangaUtenteGet?> GetMangaUtente(AppDbContext context, string idUtente)
-        {
-            return context.MangaUtenti
-                .Where((MangaUtente m) => m.idUtente == idUtente)
-                .Select((MangaUtente m) => new MangaUtenteGet(m.preferiti, m.letti, m.completati))
-                .FirstOrDefaultAsync();
         }
 
         [HttpPut("upsert_manga_preferiti/{idUtente}")]
@@ -121,6 +116,27 @@ namespace Manga.Controllers
             {
                 return StatusCode(500, $"Errore interno del server: {ex.Message}");
             }
+        }
+
+        // Metodi di supporto
+        private Task<MangaUtenteGet?> GetMangaUtente(AppDbContext context, string idUtente)
+        {
+            return context.MangaUtenti
+                .Where((MangaUtente m) => m.idUtente == idUtente)
+                .Select((MangaUtente m) => new MangaUtenteGet(m.preferiti, m.letti, m.completati))
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task<List<MangaClass>> GetAllMangaCache(AppDbContext context)
+        {
+            List<MangaClass>? listaManga = await _cache.GetOrCreateAsync("AllMangaCache", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
+                entry.SetPriority(CacheItemPriority.Normal);
+                return await context.ListaManga.ToListAsync();
+            });
+
+            return listaManga ?? new List<MangaClass>();
         }
     }
 }

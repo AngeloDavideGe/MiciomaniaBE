@@ -27,6 +27,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGenWithSecurity();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddCors(corsOptions =>
 {
