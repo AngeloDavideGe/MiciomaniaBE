@@ -18,6 +18,7 @@ namespace Utenti.Controllers
         private readonly AppDbContext _context;
         private readonly IMemoryCache _cache;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(24);
+        private readonly string _utentiCacheKey = "AllUtentiCache";
 
         public UtentiController(AppDbContext context, IMemoryCache cache)
         {
@@ -28,7 +29,7 @@ namespace Utenti.Controllers
         [HttpGet("get_all_utenti")]
         public async Task<ActionResult<IEnumerable<UserParams>>> GetAllUtenti()
         {
-            List<UserParams>? utenti = await _cache.GetOrCreateAsync("AllUtentiCache", async entry =>
+            List<UserParams>? utenti = await _cache.GetOrCreateAsync(_utentiCacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
                 entry.SetPriority(CacheItemPriority.Normal);
@@ -43,7 +44,7 @@ namespace Utenti.Controllers
                             id = u.id,
                             nome = u.nome,
                             profilePic = u.profilePic,
-                            ruolo = a.ruolo ?? "User"
+                            ruolo = a.ruolo
                         }
                     )
                     .ToListAsync();
@@ -112,6 +113,20 @@ namespace Utenti.Controllers
                     userForm.username, userForm.nome, userForm.email, userForm.password
                 );
 
+                List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
+                if (utentiInCache != null)
+                {
+                    utentiInCache.Add(new UserParams
+                    {
+                        id = userForm.username,
+                        nome = userForm.nome,
+                        profilePic = null,
+                        ruolo = "user"
+                    });
+
+                    _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
+                }
+
                 return Ok("Utente aggiornato con successo");
             }
             catch (Exception ex)
@@ -146,6 +161,19 @@ namespace Utenti.Controllers
                     )"
                 );
 
+                List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
+                if (utentiInCache != null)
+                {
+                    UserParams? utenteDaAggiornare = utentiInCache.FirstOrDefault((UserParams u) => u.id == id);
+                    if (utenteDaAggiornare != null)
+                    {
+                        utenteDaAggiornare.nome = userForm.nome;
+                        utenteDaAggiornare.profilePic = userForm.profilePic;
+                    }
+
+                    _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
+                }
+
                 return Ok(new { message = "Utente aggiornato con successo" });
             }
             catch (Exception ex)
@@ -160,7 +188,6 @@ namespace Utenti.Controllers
             try
             {
                 User? user = await _context.Users.FindAsync(id);
-
                 if (user == null)
                 {
                     return NotFound("Utente non trovato");
@@ -168,6 +195,13 @@ namespace Utenti.Controllers
 
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
+
+                List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
+                if (utentiInCache != null)
+                {
+                    utentiInCache.RemoveAll((UserParams u) => u.id == id);
+                    _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
+                }
 
                 return Ok(new { message = "Utente eliminato con successo" });
             }
@@ -194,6 +228,18 @@ namespace Utenti.Controllers
 
                 admin.ruolo = nuovoRuolo;
                 await _context.SaveChangesAsync();
+
+                List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
+                if (utentiInCache != null)
+                {
+                    UserParams? utenteDaAggiornare = utentiInCache.FirstOrDefault((UserParams u) => u.id == idUtente);
+                    if (utenteDaAggiornare != null)
+                    {
+                        utenteDaAggiornare.ruolo = nuovoRuolo;
+                    }
+
+                    _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
+                }
 
                 return Ok(new { message = "Ruolo aggiornato con successo" });
             }

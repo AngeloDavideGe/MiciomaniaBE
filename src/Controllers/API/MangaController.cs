@@ -17,6 +17,7 @@ namespace Manga.Controllers
         private readonly IDbContextFactory<AppDbContext> _contextFactory;
         private readonly IMemoryCache _cache;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(24);
+        private readonly string _mangaCacheKey = "AllMangaCache";
 
         public MangaController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory, IMemoryCache cache)
         {
@@ -81,6 +82,39 @@ namespace Manga.Controllers
             }
         }
 
+        [HttpPost("post_manga")]
+        public async Task<ActionResult> PostTweet([FromBody] MangaClass mangaForm)
+        {
+            try
+            {
+                MangaClass newManga = new MangaClass
+                {
+                    nome = mangaForm.nome,
+                    autore = mangaForm.autore,
+                    genere = mangaForm.genere,
+                    copertina = mangaForm.copertina,
+                    path = mangaForm.path,
+                    completato = mangaForm.completato
+                };
+
+                _context.ListaManga.Add(newManga);
+                await _context.SaveChangesAsync();
+
+                List<MangaClass>? cachedManga = _cache.Get<List<MangaClass>>(_mangaCacheKey);
+                if (cachedManga != null)
+                {
+                    cachedManga.Add(newManga);
+                    _cache.Set(_mangaCacheKey, cachedManga, _cacheDuration);
+                }
+
+                return Ok("Tweet aggiunto con successo");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex}");
+            }
+        }
+
         [HttpPut("upsert_manga_preferiti/{idUtente}")]
         public async Task<ActionResult> UpdateMangaPreferiti(string idUtente, [FromBody] MangaUtenteForm nuoviManga)
         {
@@ -129,7 +163,7 @@ namespace Manga.Controllers
 
         private async Task<List<MangaClass>> GetAllMangaCache(AppDbContext context)
         {
-            List<MangaClass>? listaManga = await _cache.GetOrCreateAsync("AllMangaCache", async entry =>
+            List<MangaClass>? listaManga = await _cache.GetOrCreateAsync(_mangaCacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
                 entry.SetPriority(CacheItemPriority.Normal);

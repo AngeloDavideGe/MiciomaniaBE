@@ -1,10 +1,8 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace MangaModels
 {
     public class MangaClass
     {
-        [Key] public int id { get; set; }
+        public int id { get; set; }
         public string nome { get; set; } = "";
         public string autore { get; set; } = "";
         public string genere { get; set; } = "";
