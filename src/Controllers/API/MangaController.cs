@@ -18,6 +18,7 @@ namespace Manga.Controllers
         private readonly IMemoryCache _cache;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(24);
         private readonly string _mangaCacheKey = "AllMangaCache";
+        private static readonly SemaphoreSlim _cacheMangaSemaphore = new(1, 1);
 
         public MangaController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory, IMemoryCache cache)
         {
@@ -99,6 +100,7 @@ namespace Manga.Controllers
 
                 _context.ListaManga.Add(newManga);
                 await _context.SaveChangesAsync();
+                await _cacheMangaSemaphore.WaitAsync();
 
                 List<MangaClass>? cachedManga = _cache.Get<List<MangaClass>>(_mangaCacheKey);
                 if (cachedManga != null)
@@ -112,6 +114,10 @@ namespace Manga.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Errore interno del server: {ex}");
+            }
+            finally
+            {
+                _cacheMangaSemaphore.Release();
             }
         }
 

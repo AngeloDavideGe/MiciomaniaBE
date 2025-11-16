@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Data.ApplicationDbContext;
-using MangaMiciomaniaModels;
 using MangaUtenteParModels;
 using MangaViews;
 using CanzoniUtenteModels;
-using CanzoniMiciomaniaModels;
 using ParodieForms;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -19,6 +17,8 @@ namespace Utenti.Controllers
         private readonly IDbContextFactory<AppDbContext> _contextFactory;
         private readonly IMemoryCache _cache;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(24);
+        private readonly string _mangaCacheKey = "AllMangaParodieCache";
+        private readonly string _canzoniCacheKey = "AllCanzoniParodieCache";
 
         public ParodieController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory, IMemoryCache cache)
         {
@@ -30,65 +30,28 @@ namespace Utenti.Controllers
         [HttpGet("get_all_manga_parodia")]
         public async Task<ActionResult<AllMangaParodie>> GetAllMangaParodia()
         {
-            try
+            using (AppDbContext newContext = _contextFactory.CreateDbContext())
             {
-                AllMangaParodie? allManga = await _cache.GetOrCreateAsync("AllMangaParodieCache", async entry =>
-                {
-                    entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
-
-                    using (AppDbContext newContext = _contextFactory.CreateDbContext())
-                    {
-                        Task<List<MangaMiciomania>> mangaMicioTask = _context.MangaMicio.ToListAsync();
-                        Task<List<MangaUtentePar>> mangaUtenteTask = newContext.MangaUserPar.ToListAsync();
-
-                        await Task.WhenAll(mangaMicioTask, mangaUtenteTask);
-
-                        return new AllMangaParodie(mangaMicioTask.Result, mangaUtenteTask.Result);
-                    }
-                });
-
-                return Ok(allManga ?? new AllMangaParodie(
-                        new List<MangaMiciomania>(),
-                        new List<MangaUtentePar>()
-                    )
+                return await GetMangaCanzoneCustom(
+                    _mangaCacheKey,
+                    () => _context.MangaMicio.ToListAsync(),
+                    () => newContext.MangaUserPar.ToListAsync(),
+                    (mangaMicio, mangaUtente) => new AllMangaParodie(mangaMicio, mangaUtente)
                 );
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
             }
         }
 
         [HttpGet("get_all_canzoni_parodia")]
         public async Task<ActionResult<AllCanzoniParodie>> GetAllCanzoniParodia()
         {
-            try
+            using (AppDbContext newContext = _contextFactory.CreateDbContext())
             {
-                AllCanzoniParodie? allCanzoni = await _cache.GetOrCreateAsync("AllCanzoniParodieCache", async entry =>
-                {
-                    entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
-
-                    using (AppDbContext newContext = _contextFactory.CreateDbContext())
-                    {
-                        Task<List<CanzoniMiciomania>> canzoniMicioTask = _context.CanzoniMicio.ToListAsync();
-                        Task<List<CanzoniUtente>> canzoniUtenteTask = newContext.CanzoniUser.ToListAsync();
-
-                        await Task.WhenAll(canzoniMicioTask, canzoniUtenteTask);
-
-                        return new AllCanzoniParodie(canzoniMicioTask.Result, canzoniUtenteTask.Result);
-                    }
-                });
-
-
-                return Ok(allCanzoni ?? new AllCanzoniParodie(
-                        new List<CanzoniMiciomania>(),
-                        new List<CanzoniUtente>()
-                    )
+                return await GetMangaCanzoneCustom(
+                    _canzoniCacheKey,
+                    () => _context.CanzoniMicio.ToListAsync(),
+                    () => newContext.CanzoniUser.ToListAsync(),
+                    (canzoniMicio, canzoniUtente) => new AllCanzoniParodie(canzoniMicio, canzoniUtente)
                 );
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
             }
         }
 
@@ -135,6 +98,35 @@ namespace Utenti.Controllers
                 );
 
                 return Ok(new { message = "Parodia aggiornata con successo" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+        }
+
+        private async Task<ActionResult<H>> GetMangaCanzoneCustom<T, F, H>(
+            string cacheKey,
+            Func<Task<T>> taskTFactory,
+            Func<Task<F>> taskFFactory,
+            Func<T, F, H> resultCreator
+        ) where T : class, new() where F : class, new() where H : class
+        {
+            try
+            {
+                H? result = await _cache.GetOrCreateAsync(cacheKey, async entry =>
+                {
+                    entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
+
+                    Task<T> task1 = taskTFactory();
+                    Task<F> task2 = taskFFactory();
+
+                    await Task.WhenAll(task1, task2);
+
+                    return resultCreator(task1.Result, task2.Result);
+                });
+
+                return Ok(result ?? resultCreator(new T(), new F()));
             }
             catch (Exception ex)
             {

@@ -19,6 +19,7 @@ namespace Utenti.Controllers
         private readonly IMemoryCache _cache;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(24);
         private readonly string _utentiCacheKey = "AllUtentiCache";
+        private static readonly SemaphoreSlim _cacheUserSemaphore = new(1, 1);
 
         public UtentiController(AppDbContext context, IMemoryCache cache)
         {
@@ -113,6 +114,8 @@ namespace Utenti.Controllers
                     userForm.username, userForm.nome, userForm.email, userForm.password
                 );
 
+                await _cacheUserSemaphore.WaitAsync();
+
                 List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
                 if (utentiInCache != null)
                 {
@@ -132,6 +135,10 @@ namespace Utenti.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+            finally
+            {
+                _cacheUserSemaphore.Release();
             }
         }
 
@@ -161,6 +168,8 @@ namespace Utenti.Controllers
                     )"
                 );
 
+                await _cacheUserSemaphore.WaitAsync();
+
                 List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
                 if (utentiInCache != null)
                 {
@@ -180,6 +189,10 @@ namespace Utenti.Controllers
             {
                 return StatusCode(500, $"Errore interno del server: {ex.Message}");
             }
+            finally
+            {
+                _cacheUserSemaphore.Release();
+            }
         }
 
         [HttpDelete("delete_utente/{id}")]
@@ -195,6 +208,7 @@ namespace Utenti.Controllers
 
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
+                await _cacheUserSemaphore.WaitAsync();
 
                 List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
                 if (utentiInCache != null)
@@ -213,6 +227,10 @@ namespace Utenti.Controllers
             {
                 return StatusCode(500, $"Errore interno del server: {ex.Message}");
             }
+            finally
+            {
+                _cacheUserSemaphore.Release();
+            }
         }
 
         [HttpPut("update_ruolo_admin/{idUtente}")]
@@ -228,6 +246,7 @@ namespace Utenti.Controllers
 
                 admin.ruolo = nuovoRuolo;
                 await _context.SaveChangesAsync();
+                await _cacheUserSemaphore.WaitAsync();
 
                 List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
                 if (utentiInCache != null)
@@ -246,6 +265,10 @@ namespace Utenti.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+            finally
+            {
+                _cacheUserSemaphore.Release();
             }
         }
     }
