@@ -60,18 +60,26 @@ namespace Utenti.Controllers
         {
             try
             {
-                MangaECanzoneUtente? mangaECanzoneUtente = await _context.MangaUserPar
-                    .Where((MangaUtentePar m) => m.idUtente == idUtente)
-                    .Join(_context.CanzoniUser,
-                        (MangaUtentePar manga) => manga.idUtente,
-                        (CanzoniUtente canzone) => canzone.idUtente,
-                        (MangaUtentePar manga, CanzoniUtente canzone) => new MangaECanzoneUtente(manga, canzone))
-                    .FirstOrDefaultAsync();
+                Task<MangaUtentePar?> mangaUtenteParTask;
+                Task<CanzoniUtente?> canzoniUtenteTask;
 
-                if (mangaECanzoneUtente == null)
+                using (AppDbContext newContext = _contextFactory.CreateDbContext())
                 {
-                    return NotFound($"Nessuna parodia trovata per l'utente con ID {idUtente}.");
+                    mangaUtenteParTask = _context.MangaUserPar
+                       .Where((MangaUtentePar m) => m.idUtente == idUtente)
+                       .FirstOrDefaultAsync();
+
+                    canzoniUtenteTask = newContext.CanzoniUser
+                        .Where((CanzoniUtente c) => c.idUtente == idUtente)
+                        .FirstOrDefaultAsync();
+
+                    await Task.WhenAll(mangaUtenteParTask, canzoniUtenteTask);
                 }
+
+                MangaECanzoneUtente mangaECanzoneUtente = new MangaECanzoneUtente(
+                    mangaUtenteParTask.Result ?? new MangaUtentePar(),
+                    canzoniUtenteTask.Result ?? new CanzoniUtente()
+                );
 
                 return Ok(mangaECanzoneUtente);
             }

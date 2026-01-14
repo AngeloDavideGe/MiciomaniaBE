@@ -150,7 +150,7 @@ namespace Manga.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return Ok($"Manga Utente aggiornati per l'utente {idUtente}");
+                return Ok(new { message = $"Manga Utente aggiornati per l'utente {idUtente}" });
             }
             catch (Exception ex)
             {

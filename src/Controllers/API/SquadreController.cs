@@ -4,6 +4,7 @@ using GiocatoreModels;
 using SquadreView;
 using SquadraModels;
 using Microsoft.EntityFrameworkCore;
+using SquadreForms;
 
 namespace Squadre.Controllers
 {
@@ -20,6 +21,29 @@ namespace Squadre.Controllers
             _contextFactory = contextFactory;
         }
 
+        [HttpGet("get_squadre")]
+        public async Task<ActionResult<List<SquadraView>>> GetSquadre()
+        {
+            try
+            {
+                List<SquadraView> squadre = await _context.Squadre
+                    .Select((Squadra s) => new SquadraView
+                    {
+                        nome = s.nome,
+                        punteggio = s.punteggio,
+                        descrizione = s.descrizione,
+                        colore = s.colore
+                    })
+                    .ToListAsync();
+
+                return Ok(squadre);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+        }
+
         [HttpGet("get_squadre_e_giocatori")]
         public async Task<ActionResult<SquadreGiocatori>> GetSquadreGiocatori()
         {
@@ -31,7 +55,9 @@ namespace Squadre.Controllers
                         .Select((Squadra s) => new SquadraView
                         {
                             nome = s.nome,
-                            punteggio = s.punteggio
+                            punteggio = s.punteggio,
+                            descrizione = s.descrizione,
+                            colore = s.colore
                         })
                         .ToListAsync();
 
@@ -54,20 +80,19 @@ namespace Squadre.Controllers
         }
 
         [HttpPut("update_punteggio_giocatore/{idUtente}")]
-        public async Task<ActionResult> UpdatePunteggioGiocatore(string idUtente, [FromBody] int nuovoPunteggio)
+        public async Task<ActionResult> UpdatePunteggioGiocatore(string idUtente, [FromBody] SquadreUtenteForm squadreUtenteForm)
         {
             try
             {
-                Giocatore? giocatore = await _context.Giocatori.FindAsync(idUtente);
-                if (giocatore == null)
-                {
-                    return NotFound("Giocatore non trovato");
-                }
+                await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $@"SELECT squadre_schema.update_punteggio_giocatore(
+                        {idUtente}, 
+                        {squadreUtenteForm.nomeSquadra}, 
+                        {squadreUtenteForm.punteggio}
+                    )"
+                );
 
-                giocatore.punteggio += nuovoPunteggio;
-                await _context.SaveChangesAsync();
-
-                return Ok($"Ruolo admin aggiornato a: {giocatore.punteggio}");
+                return Ok(new { message = "Punteggio del giocatore aggiornato con successo." });
             }
             catch (Exception ex)
             {
