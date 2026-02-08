@@ -89,7 +89,35 @@ namespace Posts.Controllers
                 _context.Tweets.Add(newTweet);
                 await _context.SaveChangesAsync();
 
-                return Ok("Tweet aggiunto con successo");
+                return Ok(new { message = "Tweet aggiunto con successo" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Errore interno del server: {ex}");
+            }
+        }
+
+        [HttpPost("update_tweet/{id}")]
+        public async Task<ActionResult> UpdateTweet([FromQuery] string id, [FromBody] PostsUtenteForm postForm)
+        {
+            try
+            {
+                Tweet? tweet = await _context.Tweets.FindAsync(id);
+
+                if (tweet == null)
+                {
+                    return NotFound("Tweet non trovato");
+                }
+
+                tweet.dataCreazione = DateTime.UtcNow;
+                tweet.testo = postForm.testo;
+                tweet.idUtente = postForm.idUtente;
+                tweet.immaginePost = postForm.immaginePost;
+
+                _context.Tweets.Update(tweet);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Tweet aggiunto con successo" });
             }
             catch (Exception ex)
             {

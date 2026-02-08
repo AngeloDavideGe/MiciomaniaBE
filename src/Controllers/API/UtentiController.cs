@@ -8,6 +8,7 @@ using UserForms;
 using GiocatoreModels;
 using Npgsql;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.Json;
 
 namespace Utenti.Controllers
 {
@@ -130,7 +131,7 @@ namespace Utenti.Controllers
                     _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
                 }
 
-                return Ok("Utente aggiornato con successo");
+                return Ok(new { message = "Utente aggiunto con successo" });
             }
             catch (Exception ex)
             {
@@ -164,7 +165,8 @@ namespace Utenti.Controllers
                         {userForm.bio}, 
                         {userForm.telefono}, 
                         {userForm.squadra}, 
-                        {compleannoParam}
+                        {compleannoParam},
+                        {JsonSerializer.Serialize(userForm.social)}
                     )"
                 );
 
@@ -200,14 +202,11 @@ namespace Utenti.Controllers
         {
             try
             {
-                User? user = await _context.Users.FindAsync(id);
-                if (user == null)
-                {
-                    return NotFound("Utente non trovato");
-                }
-
-                _context.Users.Remove(user);
-                await _context.SaveChangesAsync();
+                await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $@"SELECT utenti_schema.delete_user(
+                        {id}
+                    )"
+                );
                 await _cacheUserSemaphore.WaitAsync();
 
                 List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
@@ -234,18 +233,18 @@ namespace Utenti.Controllers
         }
 
         [HttpPut("update_ruolo_admin/{idUtente}")]
-        public async Task<ActionResult> UpdateRuoloAdmin(string idUtente, [FromBody] string nuovoRuolo)
+        public async Task<ActionResult> UpdateRuoloAdmin(string idUtente, [FromBody] UserRuoloUpdateForm ruoloForm)
         {
             try
             {
-                Admin? admin = await _context.Admins.FindAsync(idUtente);
-                if (admin == null)
-                {
-                    return NotFound("Admin non trovato");
-                }
+                await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $@"
+                        UPDATE utenti_schema.admin
+                        SET ruolo = {ruoloForm.ruolo}
+                        WHERE ""idUtente"" = {idUtente};
+                    "
+                );
 
-                admin.ruolo = nuovoRuolo;
-                await _context.SaveChangesAsync();
                 await _cacheUserSemaphore.WaitAsync();
 
                 List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
@@ -254,7 +253,7 @@ namespace Utenti.Controllers
                     UserParams? utenteDaAggiornare = utentiInCache.FirstOrDefault((UserParams u) => u.id == idUtente);
                     if (utenteDaAggiornare != null)
                     {
-                        utenteDaAggiornare.ruolo = nuovoRuolo;
+                        utenteDaAggiornare.ruolo = ruoloForm.ruolo;
                     }
 
                     _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);

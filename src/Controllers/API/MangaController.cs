@@ -109,7 +109,7 @@ namespace Manga.Controllers
                     _cache.Set(_mangaCacheKey, cachedManga, _cacheDuration);
                 }
 
-                return Ok("Tweet aggiunto con successo");
+                return Ok(new { message = "Manga aggiunto con successo" });
             }
             catch (Exception ex)
             {

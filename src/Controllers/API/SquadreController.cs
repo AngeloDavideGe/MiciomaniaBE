@@ -85,11 +85,15 @@ namespace Squadre.Controllers
             try
             {
                 await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $@"SELECT squadre_schema.update_punteggio_giocatore(
-                        {idUtente}, 
-                        {squadreUtenteForm.nomeSquadra}, 
-                        {squadreUtenteForm.punteggio}
-                    )"
+                    $@"
+                        UPDATE squadre_schema.squadre
+                        SET punteggio = punteggio + {squadreUtenteForm.punteggio}
+                        WHERE nome = {squadreUtenteForm.nomeSquadra};
+
+                        UPDATE squadre_schema.giocatori
+                        SET punteggio = punteggio + {squadreUtenteForm.punteggio}
+                        WHERE ""idUtente"" = {idUtente};
+                    "
                 );
 
                 return Ok(new { message = "Punteggio del giocatore aggiornato con successo." });

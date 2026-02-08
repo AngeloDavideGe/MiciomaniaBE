@@ -38,5 +38,6 @@ namespace UserViews
         public string telefono { get; set; } = "";
         public string squadra { get; set; } = "";
         public DateTime compleanno { get; set; }
+        public Dictionary<string, string>? social { get; set; }
     }
 }
