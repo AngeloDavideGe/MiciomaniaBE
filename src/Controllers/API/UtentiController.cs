@@ -87,7 +87,7 @@ namespace Utenti.Controllers
                         bio = temp.user.bio,
                         telefono = temp.user.telefono,
                         compleanno = temp.user.compleanno,
-                        social = temp.user.social
+                        social = FormatSocial(temp.user.social)
                     }
                 )
                 .FirstOrDefaultAsync();
@@ -270,5 +270,23 @@ namespace Utenti.Controllers
                 _cacheUserSemaphore.Release();
             }
         }
+
+        private static Dictionary<string, string>? FormatSocial(JsonElement? socialElement)
+        {
+            if (socialElement == null || !socialElement.HasValue || socialElement.Value.ValueKind == JsonValueKind.Null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<Dictionary<string, string>>(socialElement.Value);
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
+
 }

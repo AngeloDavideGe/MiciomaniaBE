@@ -5,6 +5,7 @@ using PostsViews;
 using TweetModels;
 using UserModels;
 using PostsForms;
+using System.Text.Json;
 
 namespace Posts.Controllers
 {
@@ -62,7 +63,23 @@ namespace Posts.Controllers
 
                     await Task.WhenAll(utenteTask, tweetsTask);
 
-                    Profilo profilo = new Profilo(utenteTask.Result!, tweetsTask.Result);
+                    User userNew = utenteTask.Result!;
+                    UserPost userPost = new UserPost
+                    {
+                        id = userNew.id,
+                        nome = userNew.nome,
+                        email = userNew.email,
+                        password = userNew.password,
+                        profilePic = userNew.profilePic,
+                        stato = userNew.stato,
+                        provincia = userNew.provincia,
+                        bio = userNew.bio,
+                        telefono = userNew.telefono,
+                        compleanno = userNew.compleanno,
+                        social = FormatSocial(userNew.social),
+                    };
+
+                    Profilo profilo = new Profilo(userPost, tweetsTask.Result);
 
                     return Ok(profilo);
                 }
@@ -149,6 +166,23 @@ namespace Posts.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Errore interno del server: {ex.Message}");
+            }
+        }
+
+        private static Dictionary<string, string>? FormatSocial(JsonElement? socialElement)
+        {
+            if (socialElement == null || !socialElement.HasValue || socialElement.Value.ValueKind == JsonValueKind.Null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<Dictionary<string, string>>(socialElement.Value);
+            }
+            catch
+            {
+                return null;
             }
         }
     }

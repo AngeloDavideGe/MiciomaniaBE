@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace UserModels
 {
@@ -14,6 +15,6 @@ namespace UserModels
         public string? bio { get; set; } = "";
         public string? telefono { get; set; } = "";
         public DateTime? compleanno { get; set; }
-        public Dictionary<string, string>? social { get; set; }
+        public JsonElement? social { get; set; }
     }
 }
