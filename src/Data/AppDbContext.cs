@@ -10,6 +10,7 @@ using CanzoniMiciomaniaModels;
 using CanzoniUtenteModels;
 using MangaMiciomaniaModels;
 using MangaUtenteParModels;
+using InterazioniModels;
 
 namespace Data.ApplicationDbContext
 {
@@ -22,6 +23,7 @@ namespace Data.ApplicationDbContext
         public DbSet<User> Users { get; set; }
         public DbSet<Admin> Admins { get; set; }
         public DbSet<Tweet> Tweets { get; set; }
+        public DbSet<InterazioniDB> Interazioni { get; set; }
 
         // manga_schema
         public DbSet<MangaUtente> MangaUtenti { get; set; }
@@ -43,6 +45,7 @@ namespace Data.ApplicationDbContext
             modelBuilder.Entity<User>().ToTable("utenti", "utenti_schema");
             modelBuilder.Entity<Admin>().ToTable("admin", "utenti_schema");
             modelBuilder.Entity<Tweet>().ToTable("tweet", "utenti_schema");
+            modelBuilder.Entity<InterazioniDB>().ToTable("interazioni", "utenti_schema");
 
             modelBuilder.Entity<MangaUtente>().ToTable("mangautente", "manga_schema");
             modelBuilder.Entity<MangaClass>().ToTable("listamanga", "manga_schema");
@@ -92,6 +95,21 @@ namespace Data.ApplicationDbContext
                 entity.HasOne<User>()
                     .WithOne()
                     .HasForeignKey<Giocatore>(g => g.idUtente)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<InterazioniDB>(entity =>
+            {
+                entity.HasKey(g => g.id);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(i => i.user1)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(i => i.user2)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
