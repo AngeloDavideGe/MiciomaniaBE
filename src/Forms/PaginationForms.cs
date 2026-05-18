@@ -12,7 +12,6 @@ namespace PaginationForms
     {
         public List<T> elems { get; set; } = new List<T>();
         public int totElems { get; set; }
-        public int totPags { get; set; }
     }
 
 }

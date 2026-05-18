@@ -4,124 +4,100 @@ using Microsoft.EntityFrameworkCore;
 using InterazioniModels;
 using InterazioniViews;
 using PaginationForms;
-using Microsoft.Extensions.Caching.Memory;
 using InterazioniForms;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Interazioni.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class InterazioniController : ControllerBase
+    public class InterazioniController : UtilitiesController
     {
-        private readonly AppDbContext _context;
-        private readonly IDbContextFactory<AppDbContext> _contextFactory;
-
-
-        public InterazioniController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory)
-        {
-            _context = context;
-            _contextFactory = contextFactory;
-        }
+        public InterazioniController(
+            AppDbContext context,
+            IDbContextFactory<AppDbContext> contextFactory,
+            IMemoryCache cache
+        ) : base(context, contextFactory, cache) { }
 
         [HttpGet("get_all_interazioni")]
         public async Task<ActionResult<List<InterazioniGet>>> GetAllInterazioni()
         {
-            try
+            return await SingleTask(new SingleTaskOptions<List<InterazioniGet>>
             {
-                List<InterazioniGet>? interazioniList = await _context.Interazioni.Select(i => new InterazioniGet
-                {
-                    id = i.id,
-                    user1 = i.user1,
-                    user2 = i.user2,
-                    conteggio = i.conteggio,
-                    ultimoInvio = i.ultimo_invio
-                }).ToListAsync();
-
-                return Ok(interazioniList ?? new List<InterazioniGet>());
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
-        }
-
-        [HttpGet("get_interazioni_by_id/{idUser}")]
-        public async Task<ActionResult<List<InterazioniGet>>> GetInterazioniById(string idUser)
-        {
-            try
-            {
-                List<InterazioniGet> interazioniUtente = await _context.Interazioni
-                .Where(i => i.user1 == idUser || i.user2 == idUser)
-                .Select(i => new InterazioniGet
-                {
-                    id = i.id,
-                    user1 = i.user1,
-                    user2 = i.user2,
-                    conteggio = i.conteggio,
-                    ultimoInvio = i.ultimo_invio
-                })
-                .ToListAsync();
-
-                return Ok(interazioniUtente);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
-
-        }
-
-        [HttpGet("get_interazioni_paginate")]
-        public async Task<ActionResult<PaginazioneOutput<InterazioniGet>>> GetInterazioniPaginate([FromQuery] PaginazioneInput input)
-        {
-            try
-            {
-
-                IQueryable<InterazioniDB>? query = _context.Interazioni.AsQueryable();
-
-                if (input.order.ToLower() == "asc")
-                {
-                    query = query.OrderBy((InterazioniDB e) => EF.Property<object>(e, input.orderKey));
-                }
-                else
-                {
-                    query = query.OrderByDescending((InterazioniDB e) => EF.Property<object>(e, input.orderKey));
-                }
-
-                using (AppDbContext newContext = _contextFactory.CreateDbContext())
-                {
-
-                    Task<int> totaleElementiTask = newContext.Interazioni.CountAsync();
-
-                    Task<List<InterazioniDB>> interazioniTask = query
-                        .Skip((input.numPag - 1) * input.elemForPage)
-                        .Take(input.elemForPage)
-                        .ToListAsync();
-
-                    await Task.WhenAll(totaleElementiTask, interazioniTask);
-
-                    int totaleElementi = totaleElementiTask.Result;
-
-                    PaginazioneOutput<InterazioniGet> output = new PaginazioneOutput<InterazioniGet>
-                    {
-                        elems = interazioniTask.Result.Select(i => new InterazioniGet
+                Task = () => _context.Interazioni
+                        .Select(i => new InterazioniGet
                         {
                             id = i.id,
                             user1 = i.user1,
                             user2 = i.user2,
                             conteggio = i.conteggio,
                             ultimoInvio = i.ultimo_invio
-                        }).ToList(),
-                        totElems = totaleElementi,
-                        totPags = (int)Math.Ceiling(totaleElementi / (double)input.elemForPage)
-                    };
+                        })
+                        .ToListAsync(),
 
-                    return Ok(output);
-                }
-            }
-            catch (Exception ex)
+                ErrorMessage = "Errore nel recupero delle interazioni"
+            });
+        }
+
+        [HttpGet("get_interazioni_by_id/{idUser}")]
+        public async Task<ActionResult<List<InterazioniGet>>> GetInterazioniById(string idUser)
+        {
+            return await SingleTask(new SingleTaskOptions<List<InterazioniGet>>
             {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
+                Task = () => _context.Interazioni
+                    .Where(i => i.user1 == idUser || i.user2 == idUser)
+                    .Select(i => new InterazioniGet
+                    {
+                        id = i.id,
+                        user1 = i.user1,
+                        user2 = i.user2,
+                        conteggio = i.conteggio,
+                        ultimoInvio = i.ultimo_invio
+                    })
+                    .ToListAsync(),
+
+                ErrorMessage = "Errore nel recupero delle interazioni utente"
+            });
+        }
+
+        [HttpGet("get_interazioni_paginate")]
+        public async Task<ActionResult<PaginazioneOutput<InterazioniGet>>> GetInterazioniPaginate([FromQuery] PaginazioneInput input)
+        {
+            IQueryable<InterazioniDB> query = _context.Interazioni.AsQueryable();
+
+            query = input.order.ToLower() == "asc"
+                ? query.OrderBy(e => EF.Property<object>(e, input.orderKey))
+                : query.OrderByDescending(e => EF.Property<object>(e, input.orderKey));
+
+            using (AppDbContext newContext = _contextFactory.CreateDbContext())
+            {
+                return await MultiTask(new MultiTaskOptions<int, List<InterazioniDB>, PaginazioneOutput<InterazioniGet>>
+                {
+                    Task1 = () => newContext.Interazioni.CountAsync(),
+
+                    Task2 = () => query
+                        .Skip((input.numPag - 1) * input.elemForPage)
+                        .Take(input.elemForPage)
+                        .ToListAsync(),
+
+                    ResultFactory = (totElem, interazioni) =>
+                        new PaginazioneOutput<InterazioniGet>
+                        {
+                            elems = interazioni.Select(i => new InterazioniGet
+                            {
+                                id = i.id,
+                                user1 = i.user1,
+                                user2 = i.user2,
+                                conteggio = i.conteggio,
+                                ultimoInvio = i.ultimo_invio
+                            })
+                            .ToList(),
+
+                            totElems = totElem
+                        },
+
+                    ErrorMessage = "Errore nel recupero interazioni paginate"
+                });
             }
         }
 
