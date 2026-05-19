@@ -6,167 +6,152 @@ using TweetModels;
 using UserModels;
 using PostsForms;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Posts.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PostsController : ControllerBase
+    public class PostsController : UtilitiesController
     {
-        private readonly AppDbContext _context;
-        private readonly IDbContextFactory<AppDbContext> _contextFactory;
-
-        public PostsController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory)
-        {
-            _context = context;
-            _contextFactory = contextFactory;
-        }
+        public PostsController(
+            AppDbContext context,
+            IDbContextFactory<AppDbContext> contextFactory,
+            IMemoryCache cache
+        ) : base(context, contextFactory, cache) { }
 
         [HttpGet("get_all_last_posts")]
-        public async Task<ActionResult<IEnumerable<TweetExtend>>> GetAllLastPosts([FromQuery] DateTime time)
+        public async Task<ActionResult<List<TweetExtend>>> GetAllLastPosts([FromQuery] DateTime time)
         {
-            List<TweetExtend> tweetExtend = await _context.Tweets
-                .Where((Tweet tweet) => tweet.dataCreazione > time)
-                .Join(
-                    _context.Users,
-                    (Tweet tweet) => tweet.idUtente,
-                    (User user) => user.id,
-                    (Tweet tweet, User user) => new TweetExtend
-                    {
-                        id = tweet.id,
-                        dataCreazione = tweet.dataCreazione,
-                        testo = tweet.testo,
-                        idUtente = tweet.idUtente,
-                        immaginePost = tweet.immaginePost,
-                        userProfilePic = user.profilePic,
-                        userName = user.nome
-                    }
-                )
-                .ToListAsync();
-
-            return Ok(tweetExtend);
+            return await SingleTask(new SingleTaskOptions<List<TweetExtend>>
+            {
+                Task = () => _context.Tweets
+                    .Where((Tweet tweet) => tweet.dataCreazione > time)
+                    .Join(
+                        _context.Users,
+                        (Tweet tweet) => tweet.idUtente,
+                        (User user) => user.id,
+                        (Tweet tweet, User user) => new TweetExtend
+                        {
+                            id = tweet.id,
+                            dataCreazione = tweet.dataCreazione,
+                            testo = tweet.testo,
+                            idUtente = tweet.idUtente,
+                            immaginePost = tweet.immaginePost,
+                            userProfilePic = user.profilePic,
+                            userName = user.nome
+                        }
+                    )
+                    .ToListAsync(),
+                ErrorMessage = "Errore nel recupero dei ultimi post",
+            });
         }
 
         [HttpGet("get_profilo")]
         public async Task<ActionResult<Profilo>> GetProfiloById([FromQuery] string idUtente)
         {
-            try
+            using AppDbContext newContext = _contextFactory.CreateDbContext();
+
+            return await MultiTask(new MultiTaskOptions<User?, List<Tweet>, Profilo>
             {
-                using (AppDbContext newContext = _contextFactory.CreateDbContext())
-                {
-                    Task<User?> utenteTask = _context.Users.FirstOrDefaultAsync((User u) => u.id == idUtente);
-                    Task<List<Tweet>> tweetsTask = newContext.Tweets
-                        .Where((Tweet t) => t.idUtente == idUtente)
-                        .OrderByDescending((Tweet tweet) => tweet.dataCreazione)
-                        .Take(20)
-                        .ToListAsync();
+                Task1 = () => _context.Users.FirstOrDefaultAsync((User u) => u.id == idUtente),
 
-                    await Task.WhenAll(utenteTask, tweetsTask);
+                Task2 = () => newContext.Tweets
+                    .Where((Tweet t) => t.idUtente == idUtente)
+                    .OrderByDescending((Tweet tweet) => tweet.dataCreazione)
+                    .Take(20)
+                    .ToListAsync(),
 
-                    User userNew = utenteTask.Result!;
-                    UserPost userPost = new UserPost
+                ResultFactory = (user, tweets) => new Profilo(
+                    new UserPost
                     {
-                        id = userNew.id,
-                        nome = userNew.nome,
-                        email = userNew.email,
-                        password = userNew.password,
-                        profilePic = userNew.profilePic,
-                        stato = userNew.stato,
-                        provincia = userNew.provincia,
-                        bio = userNew.bio,
-                        telefono = userNew.telefono,
-                        compleanno = userNew.compleanno,
-                        social = FormatSocial(userNew.social),
-                    };
+                        id = user!.id,
+                        nome = user.nome,
+                        email = user.email,
+                        password = user.password,
+                        profilePic = user.profilePic,
+                        stato = user.stato,
+                        provincia = user.provincia,
+                        bio = user.bio,
+                        telefono = user.telefono,
+                        compleanno = user.compleanno,
+                        social = FormatSocial(user.social),
+                    },
+                    tweets
+                ),
 
-                    Profilo profilo = new Profilo(userPost, tweetsTask.Result);
-
-                    return Ok(profilo);
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
+                ErrorMessage = "Errore nel recupero del profilo",
+            });
         }
 
         [HttpPost("post_tweet")]
         public async Task<ActionResult> PostTweet([FromBody] PostsUtenteForm postForm)
         {
-            try
+            return await SqlFunc(new SqlTaskOptions
             {
-                Tweet newTweet = new Tweet
+                Sql = async () =>
                 {
-                    dataCreazione = DateTime.UtcNow,
-                    testo = postForm.testo,
-                    idUtente = postForm.idUtente,
-                    immaginePost = postForm.immaginePost
-                };
+                    Tweet newTweet = new Tweet
+                    {
+                        dataCreazione = DateTime.UtcNow,
+                        testo = postForm.testo,
+                        idUtente = postForm.idUtente,
+                        immaginePost = postForm.immaginePost
+                    };
+                    _context.Tweets.Add(newTweet);
+                    await _context.SaveChangesAsync();
+                },
 
-                _context.Tweets.Add(newTweet);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Tweet aggiunto con successo" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex}");
-            }
+                ErrorMessage = "Errore nella creazione del tweet",
+                SuccessMessage = "Tweet creato con successo"
+            });
         }
 
         [HttpPost("update_tweet/{id}")]
-        public async Task<ActionResult> UpdateTweet([FromQuery] string id, [FromBody] PostsUtenteForm postForm)
+        public async Task<ActionResult> UpdateTweet([FromRoute] int id, [FromBody] PostsUtenteForm postForm)
         {
-            try
+            return await SqlFunc(new SqlTaskOptions
             {
-                Tweet? tweet = await _context.Tweets.FindAsync(id);
-
-                if (tweet == null)
+                Sql = async () =>
                 {
-                    return NotFound("Tweet non trovato");
-                }
+                    Tweet? tweet = await _context.Tweets.FindAsync(id);
 
-                tweet.dataCreazione = DateTime.UtcNow;
-                tweet.testo = postForm.testo;
-                tweet.idUtente = postForm.idUtente;
-                tweet.immaginePost = postForm.immaginePost;
+                    if (tweet == null)
+                        throw new Exception("Tweet non trovato");
 
-                _context.Tweets.Update(tweet);
-                await _context.SaveChangesAsync();
+                    tweet.dataCreazione = DateTime.UtcNow;
+                    tweet.testo = postForm.testo;
+                    tweet.idUtente = postForm.idUtente;
+                    tweet.immaginePost = postForm.immaginePost;
 
-                return Ok(new { message = "Tweet aggiunto con successo" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex}");
-            }
+                    _context.Tweets.Update(tweet);
+                    await _context.SaveChangesAsync();
+                },
+
+                ErrorMessage = "Errore nell'aggiornamento del tweet",
+                SuccessMessage = "Tweet aggiornato con successo"
+            });
         }
 
         [HttpDelete("delete_post/{id}")]
-        public async Task<ActionResult> DeletePost(int id)
+        public async Task<ActionResult> DeletePost([FromRoute] int id)
         {
-            try
+            return await SqlFunc(new SqlTaskOptions
             {
-                Tweet? tweet = await _context.Tweets.FindAsync(id);
-
-                if (tweet == null)
+                Sql = async () =>
                 {
-                    return NotFound("Tweet non trovato");
-                }
+                    Tweet? tweet = await _context.Tweets.FindAsync(id);
 
-                _context.Tweets.Remove(tweet);
-                await _context.SaveChangesAsync();
+                    if (tweet == null)
+                        throw new Exception("Tweet non trovato");
 
-                return Ok(new { message = "Tweet eliminato con successo" });
-            }
-            catch (DbUpdateException)
-            {
-                return StatusCode(500, "Impossibile eliminare il tweet per vincoli di integrità referenziale");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
+                    _context.Tweets.Remove(tweet);
+                    await _context.SaveChangesAsync();
+                },
+
+                ErrorMessage = "Errore nell'eliminazione del tweet",
+                SuccessMessage = "Tweet eliminato con successo"
+            });
         }
 
         private static Dictionary<string, string>? FormatSocial(JsonElement? socialElement)

@@ -3,9 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Data.ApplicationDbContext;
 using UserModels;
 using UserViews;
-using AdminModels;
 using UserForms;
-using GiocatoreModels;
 using Npgsql;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json;
@@ -23,29 +21,30 @@ namespace Utenti.Controllers
         ) : base(context, contextFactory, cache) { }
 
         [HttpGet("get_all_utenti")]
-        public async Task<ActionResult<IEnumerable<UserParams>>> GetAllUtenti()
+        public async Task<ActionResult<List<UserParams>>> GetAllUtenti()
         {
-            List<UserParams> utenti = await CacheFunc(new CacheOptions<List<UserParams>>
+            return await SingleTask(new SingleTaskOptions<List<UserParams>>
             {
-                NomeCache = "UtentiCache",
-                DurataCache = TimeSpan.FromHours(2),
-                Task = () => _context.Users
-                    .Join(
-                        _context.Admins,
-                        u => u.id,
-                        a => a.idUtente,
-                        (u, a) => new UserParams
-                        {
-                            id = u.id,
-                            nome = u.nome,
-                            profilePic = u.profilePic,
-                            ruolo = a.ruolo
-                        }
-                    )
-                    .ToListAsync()
+                Task = () => CacheFunc(new CacheOptions<List<UserParams>>
+                {
+                    NomeCache = "UtentiCache",
+                    DurataCache = TimeSpan.FromHours(2),
+                    Task = () => _context.Users
+                        .Join(
+                            _context.Admins,
+                            u => u.id,
+                            a => a.idUtente,
+                            (u, a) => new UserParams
+                            {
+                                id = u.id,
+                                nome = u.nome,
+                                profilePic = u.profilePic,
+                                ruolo = a.ruolo
+                            }
+                        )
+                        .ToListAsync()
+                })
             });
-
-            return Ok(utenti);
         }
 
         [HttpGet("get_utente_by_email")]

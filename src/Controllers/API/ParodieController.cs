@@ -24,17 +24,17 @@ namespace Utenti.Controllers
         [HttpGet("get_all_manga_parodia")]
         public async Task<ActionResult<AllMangaParodie>> GetAllMangaParodia()
         {
-            using (AppDbContext newContext = _contextFactory.CreateDbContext())
+            using AppDbContext newContext = _contextFactory.CreateDbContext();
+
+            return await MultiTask(new MultiTaskOptions<List<MangaMiciomania>, List<MangaUtentePar>, AllMangaParodie>
             {
-                return await MultiTask(new MultiTaskOptions<List<MangaMiciomania>, List<MangaUtentePar>, AllMangaParodie>
-                {
-                    Task1 = () => _context.MangaMicio.ToListAsync(),
-                    Task2 = () => newContext.MangaUserPar.ToListAsync(),
-                    ResultFactory = (mangaMicio, mangaUtente) => new AllMangaParodie(mangaMicio, mangaUtente),
-                    ErrorMessage = "Errore recupero manga parodia"
-                }
-                );
+                Task1 = () => _context.MangaMicio.ToListAsync(),
+                Task2 = () => newContext.MangaUserPar.ToListAsync(),
+                ResultFactory = (mangaMicio, mangaUtente) => new AllMangaParodie(mangaMicio, mangaUtente),
+                ErrorMessage = "Errore recupero manga parodia"
             }
+            );
+
         }
 
         [HttpGet("get_all_canzoni_parodia")]

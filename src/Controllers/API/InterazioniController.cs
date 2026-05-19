@@ -25,15 +25,15 @@ namespace Interazioni.Controllers
             return await SingleTask(new SingleTaskOptions<List<InterazioniGet>>
             {
                 Task = () => _context.Interazioni
-                        .Select(i => new InterazioniGet
-                        {
-                            id = i.id,
-                            user1 = i.user1,
-                            user2 = i.user2,
-                            conteggio = i.conteggio,
-                            ultimoInvio = i.ultimo_invio
-                        })
-                        .ToListAsync(),
+                    .Select(i => new InterazioniGet
+                    {
+                        id = i.id,
+                        user1 = i.user1,
+                        user2 = i.user2,
+                        conteggio = i.conteggio,
+                        ultimoInvio = i.ultimo_invio
+                    })
+                    .ToListAsync(),
 
                 ErrorMessage = "Errore nel recupero delle interazioni"
             });
@@ -69,36 +69,35 @@ namespace Interazioni.Controllers
                 ? query.OrderBy(e => EF.Property<object>(e, input.orderKey))
                 : query.OrderByDescending(e => EF.Property<object>(e, input.orderKey));
 
-            using (AppDbContext newContext = _contextFactory.CreateDbContext())
+            using AppDbContext newContext = _contextFactory.CreateDbContext();
+
+            return await MultiTask(new MultiTaskOptions<int, List<InterazioniDB>, PaginazioneOutput<InterazioniGet>>
             {
-                return await MultiTask(new MultiTaskOptions<int, List<InterazioniDB>, PaginazioneOutput<InterazioniGet>>
-                {
-                    Task1 = () => newContext.Interazioni.CountAsync(),
+                Task1 = () => newContext.Interazioni.CountAsync(),
 
-                    Task2 = () => query
-                        .Skip((input.numPag - 1) * input.elemForPage)
-                        .Take(input.elemForPage)
-                        .ToListAsync(),
+                Task2 = () => query
+                    .Skip((input.numPag - 1) * input.elemForPage)
+                    .Take(input.elemForPage)
+                    .ToListAsync(),
 
-                    ResultFactory = (totElem, interazioni) =>
-                        new PaginazioneOutput<InterazioniGet>
+                ResultFactory = (totElem, interazioni) =>
+                    new PaginazioneOutput<InterazioniGet>
+                    {
+                        elems = interazioni.Select(i => new InterazioniGet
                         {
-                            elems = interazioni.Select(i => new InterazioniGet
-                            {
-                                id = i.id,
-                                user1 = i.user1,
-                                user2 = i.user2,
-                                conteggio = i.conteggio,
-                                ultimoInvio = i.ultimo_invio
-                            })
-                            .ToList(),
+                            id = i.id,
+                            user1 = i.user1,
+                            user2 = i.user2,
+                            conteggio = i.conteggio,
+                            ultimoInvio = i.ultimo_invio
+                        })
+                        .ToList(),
 
-                            totElems = totElem
-                        },
+                        totElems = totElem
+                    },
 
-                    ErrorMessage = "Errore nel recupero interazioni paginate"
-                });
-            }
+                ErrorMessage = "Errore nel recupero interazioni paginate"
+            });
         }
 
         [HttpPut("upsert_interazione")]

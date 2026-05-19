@@ -42,13 +42,15 @@ namespace Manga.Controllers
         [HttpGet("get_all_manga_e_preferiti")]
         public async Task<ActionResult<MangaEPreferiti>> GetAllMangaEPreferiti([FromQuery] string idUtente)
         {
+            using AppDbContext newContext = _contextFactory.CreateDbContext();
+
             return await MultiTask(new MultiTaskOptions<List<MangaClass>, MangaUtenteGet?, MangaEPreferiti>
             {
-                Task1 = GetAllMangaCache,
+                Task1 = GetAllMangaCache!,
 
                 Task2 = () => string.IsNullOrEmpty(idUtente)
                     ? Task.FromResult<MangaUtenteGet?>(null)
-                    : GetMangaUtente(_contextFactory.CreateDbContext(), idUtente),
+                    : GetMangaUtente(newContext, idUtente),
 
                 ResultFactory = (manga, preferiti) =>
                     new MangaEPreferiti(

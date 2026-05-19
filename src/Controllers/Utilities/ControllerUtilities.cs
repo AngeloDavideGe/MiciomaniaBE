@@ -33,9 +33,7 @@ public abstract class UtilitiesController : ControllerBase
         }
     }
 
-    protected async Task<ActionResult<TResult>>
-    MultiTask<T1, T2, TResult>(
-        MultiTaskOptions<T1, T2, TResult> options)
+    protected async Task<ActionResult<TResult>> MultiTask<T1, T2, TResult>(MultiTaskOptions<T1, T2, TResult> options)
     {
         try
         {
@@ -77,18 +75,13 @@ public abstract class UtilitiesController : ControllerBase
 
     protected async Task<T> CacheFunc<T>(CacheOptions<T> options)
     {
-        T? value = await _cache.GetOrCreateAsync(options.NomeCache, async entry =>
+        return (await _cache.GetOrCreateAsync(options.NomeCache, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = options.DurataCache;
             entry.SetPriority(CacheItemPriority.Normal);
 
             return await options.Task();
-        });
-
-        if (value is null)
-            throw new InvalidOperationException($"Cache '{options.NomeCache}' returned null");
-
-        return value;
+        }))!;
     }
 }
 

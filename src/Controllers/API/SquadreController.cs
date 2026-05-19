@@ -5,53 +5,28 @@ using SquadreView;
 using SquadraModels;
 using Microsoft.EntityFrameworkCore;
 using SquadreForms;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Squadre.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class SquadreController : ControllerBase
+    public class SquadreController : UtilitiesController
     {
-        private readonly AppDbContext _context;
-        private readonly IDbContextFactory<AppDbContext> _contextFactory;
-
-        public SquadreController(AppDbContext context, IDbContextFactory<AppDbContext> contextFactory)
-        {
-            _context = context;
-            _contextFactory = contextFactory;
-        }
+        public SquadreController(
+            AppDbContext context,
+            IDbContextFactory<AppDbContext> contextFactory,
+            IMemoryCache cache
+        ) : base(context, contextFactory, cache) { }
 
         [HttpGet("get_squadre")]
         public async Task<ActionResult<List<SquadraView>>> GetSquadre()
         {
-            try
+            return await SingleTask(new SingleTaskOptions<List<SquadraView>>
             {
-                List<SquadraView> squadre = await _context.Squadre
-                    .Select((Squadra s) => new SquadraView
-                    {
-                        nome = s.nome,
-                        punteggio = s.punteggio,
-                        descrizione = s.descrizione,
-                        colore = s.colore
-                    })
-                    .ToListAsync();
-
-                return Ok(squadre);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
-        }
-
-        [HttpGet("get_squadre_e_giocatori")]
-        public async Task<ActionResult<SquadreGiocatori>> GetSquadreGiocatori()
-        {
-            try
-            {
-                using (AppDbContext newContext = _contextFactory.CreateDbContext())
+                Task = async () =>
                 {
-                    Task<List<SquadraView>> squadreTask = _context.Squadre
+                    return await _context.Squadre
                         .Select((Squadra s) => new SquadraView
                         {
                             nome = s.nome,
@@ -60,31 +35,51 @@ namespace Squadre.Controllers
                             colore = s.colore
                         })
                         .ToListAsync();
+                },
 
-                    Task<List<Giocatore>> topGiocatoriTask = newContext.Giocatori
+                ErrorMessage = "Errore nel recupero delle squadre"
+            });
+        }
+
+        [HttpGet("get_squadre_e_giocatori")]
+        public async Task<ActionResult<SquadreGiocatori>> GetSquadreGiocatori()
+        {
+            using AppDbContext newContext = _contextFactory.CreateDbContext();
+
+            return await MultiTask(new MultiTaskOptions<List<SquadraView>, List<Giocatore>, SquadreGiocatori>
+            {
+                Task1 = () =>
+                    _context.Squadre
+                        .Select((Squadra s) => new SquadraView
+                        {
+                            nome = s.nome,
+                            punteggio = s.punteggio,
+                            descrizione = s.descrizione,
+                            colore = s.colore
+                        })
+                        .ToListAsync(),
+
+                Task2 = () =>
+                    newContext.Giocatori
                         .Where((Giocatore g) => g.punteggio > 0)
                         .OrderByDescending((Giocatore g) => g.punteggio)
                         .Take(5)
-                        .ToListAsync();
+                        .ToListAsync(),
 
-                    await Task.WhenAll(squadreTask, topGiocatoriTask);
+                ResultFactory = (squadre, giocatori) => new SquadreGiocatori(squadre, giocatori),
 
-                    SquadreGiocatori result = new SquadreGiocatori(squadreTask.Result, topGiocatoriTask.Result);
-                    return Ok(result);
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
+                ErrorMessage = "Errore nel recupero squadre e giocatori"
+            });
         }
 
         [HttpPut("update_punteggio_giocatore/{idUtente}")]
-        public async Task<ActionResult> UpdatePunteggioGiocatore(string idUtente, [FromBody] SquadreUtenteForm squadreUtenteForm)
+        public async Task<ActionResult> UpdatePunteggioGiocatore(
+            string idUtente,
+            [FromBody] SquadreUtenteForm squadreUtenteForm)
         {
-            try
+            return await SqlFunc(new SqlTaskOptions
             {
-                await _context.Database.ExecuteSqlInterpolatedAsync(
+                Sql = () => _context.Database.ExecuteSqlInterpolatedAsync(
                     $@"
                         UPDATE squadre_schema.squadre
                         SET punteggio = punteggio + {squadreUtenteForm.punteggio}
@@ -94,14 +89,10 @@ namespace Squadre.Controllers
                         SET punteggio = punteggio + {squadreUtenteForm.punteggio}
                         WHERE ""idUtente"" = {idUtente};
                     "
-                );
-
-                return Ok(new { message = "Punteggio del giocatore aggiornato con successo." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
+                ),
+                ErrorMessage = "Errore nell'aggiornamento del punteggio del giocatore",
+                SuccessMessage = "Punteggio del giocatore aggiornato con successo"
+            });
         }
     }
 }
