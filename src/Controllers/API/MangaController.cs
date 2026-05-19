@@ -105,7 +105,6 @@ namespace Manga.Controllers
                             completati = nuoviManga.completati,
                             preferiti = nuoviManga.preferiti
                         };
-
                         _context.MangaUtenti.Add(mangaUtente);
                     }
                     else
@@ -116,10 +115,8 @@ namespace Manga.Controllers
 
                         _context.MangaUtenti.Update(mangaUtente);
                     }
-
                     await _context.SaveChangesAsync();
                 },
-
                 SuccessMessage = $"Manga utente aggiornati per {idUtente}",
                 ErrorMessage = "Errore aggiornamento manga utente"
             });

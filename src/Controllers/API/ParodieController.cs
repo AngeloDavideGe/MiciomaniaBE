@@ -97,7 +97,6 @@ namespace Utenti.Controllers
                 ),
                 SuccessMessage = "Parodia aggiornata con successo",
                 ErrorMessage = "Errore update parodia"
-
             });
         }
     }

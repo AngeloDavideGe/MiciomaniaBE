@@ -104,37 +104,41 @@ namespace Interazioni.Controllers
         [HttpPut("upsert_interazione")]
         public async Task<ActionResult> UpsertInterazione([FromBody] InterazioniPut input)
         {
-            try
+            return await SqlFunc(new SqlTaskOptions
             {
-                InterazioniDB? interazioneEsistente = await _context.Interazioni
-                    .FirstOrDefaultAsync((InterazioniDB i) => (i.user1 == input.user1 && i.user2 == input.user2));
-
-                if (interazioneEsistente != null)
+                Sql = async () =>
                 {
-                    interazioneEsistente.conteggio += 1;
-                    interazioneEsistente.ultimo_invio = DateTime.UtcNow;
+                    InterazioniDB? interazioneEsistente = await _context.Interazioni
+                        .FirstOrDefaultAsync(i =>
+                            i.user1 == input.user1 &&
+                            i.user2 == input.user2);
 
-                    _context.Interazioni.Update(interazioneEsistente);
-                }
-                else
-                {
-                    InterazioniDB nuovaInterazione = new InterazioniDB
+                    if (interazioneEsistente != null)
                     {
-                        user1 = input.user1,
-                        user2 = input.user2,
-                        conteggio = 1,
-                        ultimo_invio = DateTime.UtcNow
-                    };
-                    _context.Interazioni.Add(nuovaInterazione);
-                }
+                        interazioneEsistente.conteggio += 1;
+                        interazioneEsistente.ultimo_invio = DateTime.UtcNow;
 
-                await _context.SaveChangesAsync();
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
+                        _context.Interazioni.Update(interazioneEsistente);
+                    }
+                    else
+                    {
+                        var nuovaInterazione = new InterazioniDB
+                        {
+                            user1 = input.user1,
+                            user2 = input.user2,
+                            conteggio = 1,
+                            ultimo_invio = DateTime.UtcNow
+                        };
+
+                        _context.Interazioni.Add(nuovaInterazione);
+                    }
+
+                    await _context.SaveChangesAsync();
+                },
+
+                SuccessMessage = "Interazione aggiornata con successo",
+                ErrorMessage = "Errore aggiornamento interazione"
+            });
         }
     }
 }

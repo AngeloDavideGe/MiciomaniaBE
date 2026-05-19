@@ -14,34 +14,27 @@ namespace Utenti.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class UtentiController : ControllerBase
+    public class UtentiController : UtilitiesController
     {
-        private readonly AppDbContext _context;
-        private readonly IMemoryCache _cache;
-        private readonly TimeSpan _cacheDuration = TimeSpan.FromHours(24);
-        private readonly string _utentiCacheKey = "AllUtentiCache";
-        private static readonly SemaphoreSlim _cacheUserSemaphore = new(1, 1);
-
-        public UtentiController(AppDbContext context, IMemoryCache cache)
-        {
-            _context = context;
-            _cache = cache;
-        }
+        public UtentiController(
+            AppDbContext context,
+            IDbContextFactory<AppDbContext> contextFactory,
+            IMemoryCache cache
+        ) : base(context, contextFactory, cache) { }
 
         [HttpGet("get_all_utenti")]
         public async Task<ActionResult<IEnumerable<UserParams>>> GetAllUtenti()
         {
-            List<UserParams>? utenti = await _cache.GetOrCreateAsync(_utentiCacheKey, async entry =>
+            List<UserParams> utenti = await CacheFunc(new CacheOptions<List<UserParams>>
             {
-                entry.AbsoluteExpirationRelativeToNow = _cacheDuration;
-                entry.SetPriority(CacheItemPriority.Normal);
-
-                return await _context.Users
+                NomeCache = "UtentiCache",
+                DurataCache = TimeSpan.FromHours(2),
+                Task = () => _context.Users
                     .Join(
                         _context.Admins,
-                        (User u) => u.id,
-                        (Admin a) => a.idUtente,
-                        (User u, Admin a) => new UserParams
+                        u => u.id,
+                        a => a.idUtente,
+                        (u, a) => new UserParams
                         {
                             id = u.id,
                             nome = u.nome,
@@ -49,226 +42,142 @@ namespace Utenti.Controllers
                             ruolo = a.ruolo
                         }
                     )
-                    .ToListAsync();
+                    .ToListAsync()
             });
 
-            return Ok(utenti ?? new List<UserParams>());
+            return Ok(utenti);
         }
 
         [HttpGet("get_utente_by_email")]
-        public async Task<ActionResult<UserJoin>> GetUtenteByCredentials(
+        public async Task<ActionResult<UserJoin?>> GetUtenteByCredentials(
             [FromQuery] string email,
             [FromQuery] string password)
         {
-            UserJoin? utenteJoin = await _context.Users
-                .Where(u => u.email == email && u.password == password)
-                .Join(
-                    _context.Admins,
-                    (User user) => user.id,
-                    (Admin admin) => admin.idUtente,
-                    (User user, Admin admin) => new { user, admin }
-                )
-                .Join(
-                    _context.Giocatori,
-                    (temp) => temp.user.id,
-                    (Giocatore giocatore) => giocatore.idUtente,
-                    (temp, giocatore) => new UserJoin
-                    {
-                        id = temp.user.id,
-                        nome = temp.user.nome,
-                        email = temp.user.email,
-                        password = temp.user.password,
-                        profilePic = temp.user.profilePic,
-                        ruolo = temp.admin.ruolo,
-                        stato = temp.user.stato,
-                        squadra = giocatore.squadra,
-                        provincia = temp.user.provincia,
-                        punteggio = giocatore.punteggio,
-                        bio = temp.user.bio,
-                        telefono = temp.user.telefono,
-                        compleanno = temp.user.compleanno,
-                        social = FormatSocial(temp.user.social)
-                    }
-                )
-                .FirstOrDefaultAsync();
-
-            if (utenteJoin == null)
+            return await SingleTask(new SingleTaskOptions<UserJoin?>
             {
-                return NotFound();
-            }
+                Task = () => _context.Users
+                    .Where(u => u.email == email && u.password == password)
+                    .Join(
+                        _context.Admins,
+                        u => u.id,
+                        a => a.idUtente,
+                        (u, a) => new { u, a }
+                    )
+                    .Join(
+                        _context.Giocatori,
+                        x => x.u.id,
+                        g => g.idUtente,
+                        (x, g) => new UserJoin
+                        {
+                            id = x.u.id,
+                            nome = x.u.nome,
+                            email = x.u.email,
+                            password = x.u.password,
+                            profilePic = x.u.profilePic,
+                            ruolo = x.a.ruolo,
+                            stato = x.u.stato,
+                            squadra = g.squadra,
+                            provincia = x.u.provincia,
+                            punteggio = g.punteggio,
+                            bio = x.u.bio,
+                            telefono = x.u.telefono,
+                            compleanno = x.u.compleanno,
+                            social = FormatSocial(x.u.social)
+                        }
+                    )
+                    .FirstOrDefaultAsync(),
 
-            return Ok(utenteJoin);
+                ErrorMessage = "Utente non trovato"
+            });
         }
 
         [HttpPost("post_utente")]
         public async Task<ActionResult> PostUser([FromBody] UserPostForm userForm)
         {
             User? existingUser = await _context.Users
-                .FirstOrDefaultAsync((User u) => u.id == userForm.nome);
+                .FirstOrDefaultAsync(u => u.id == userForm.nome);
 
-            if (existingUser != null) return Conflict("Username già esistente");
+            if (existingUser != null)
+                return Conflict("Username già esistente");
 
-            try
+            return await SqlFunc(new SqlTaskOptions
             {
-                await _context.Database.ExecuteSqlRawAsync(
+                Sql = () => _context.Database.ExecuteSqlRawAsync(
                     "SELECT utenti_schema.create_user_complete({0}, {1}, {2}, {3})",
-                    userForm.username, userForm.nome, userForm.email, userForm.password
-                );
-
-                await _cacheUserSemaphore.WaitAsync();
-
-                List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
-                if (utentiInCache != null)
-                {
-                    utentiInCache.Add(new UserParams
-                    {
-                        id = userForm.username,
-                        nome = userForm.nome,
-                        profilePic = null,
-                        ruolo = "user"
-                    });
-
-                    _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
-                }
-
-                return Ok(new { message = "Utente aggiunto con successo" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
-            finally
-            {
-                _cacheUserSemaphore.Release();
-            }
+                    userForm.username,
+                    userForm.nome,
+                    userForm.email,
+                    userForm.password
+                ),
+                SuccessMessage = "Utente aggiunto con successo",
+                ErrorMessage = "Errore creazione utente"
+            });
         }
 
         [HttpPut("update_utente/{id}")]
         public async Task<ActionResult> UpdateUser(string id, [FromBody] UserUpdate userForm)
         {
-            try
+            var compleannoParam = new NpgsqlParameter(
+                "compleanno",
+                NpgsqlTypes.NpgsqlDbType.Timestamp
+            )
             {
-                var compleannoParam = new NpgsqlParameter("compleanno", NpgsqlTypes.NpgsqlDbType.Timestamp)
-                {
-                    Value = DateTime.SpecifyKind(userForm.compleanno, DateTimeKind.Unspecified)
-                };
+                Value = DateTime.SpecifyKind(userForm.compleanno, DateTimeKind.Unspecified)
+            };
 
-                await _context.Database.ExecuteSqlInterpolatedAsync(
+            return await SqlFunc(new SqlTaskOptions
+            {
+                Sql = () => _context.Database.ExecuteSqlInterpolatedAsync(
                     $@"SELECT utenti_schema.update_user_complete(
-                        {id}, 
-                        {userForm.nome}, 
-                        {userForm.email}, 
-                        {userForm.password}, 
-                        {userForm.profilePic}, 
-                        {userForm.stato}, 
-                        {userForm.provincia}, 
-                        {userForm.bio}, 
-                        {userForm.telefono}, 
-                        {userForm.squadra}, 
+                        {id},
+                        {userForm.nome},
+                        {userForm.email},
+                        {userForm.password},
+                        {userForm.profilePic},
+                        {userForm.stato},
+                        {userForm.provincia},
+                        {userForm.bio},
+                        {userForm.telefono},
+                        {userForm.squadra},
                         {compleannoParam},
                         {JsonSerializer.Serialize(userForm.social)}
                     )"
-                );
-
-                await _cacheUserSemaphore.WaitAsync();
-
-                List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
-                if (utentiInCache != null)
-                {
-                    UserParams? utenteDaAggiornare = utentiInCache.FirstOrDefault((UserParams u) => u.id == id);
-                    if (utenteDaAggiornare != null)
-                    {
-                        utenteDaAggiornare.nome = userForm.nome;
-                        utenteDaAggiornare.profilePic = userForm.profilePic;
-                    }
-
-                    _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
-                }
-
-                return Ok(new { message = "Utente aggiornato con successo" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
-            finally
-            {
-                _cacheUserSemaphore.Release();
-            }
+                ),
+                SuccessMessage = "Utente aggiornato con successo",
+                ErrorMessage = "Errore aggiornamento utente"
+            });
         }
 
         [HttpDelete("delete_utente/{id}")]
         public async Task<ActionResult> DeleteUser(string id)
         {
-            try
+            return await SqlFunc(new SqlTaskOptions
             {
-                await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $@"SELECT utenti_schema.delete_user(
-                        {id}
-                    )"
-                );
-                await _cacheUserSemaphore.WaitAsync();
-
-                List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
-                if (utentiInCache != null)
-                {
-                    utentiInCache.RemoveAll((UserParams u) => u.id == id);
-                    _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
-                }
-
-                return Ok(new { message = "Utente eliminato con successo" });
-            }
-            catch (DbUpdateException)
-            {
-                return StatusCode(500, "Impossibile eliminare l'utente per vincoli di integrità referenziale");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
-            finally
-            {
-                _cacheUserSemaphore.Release();
-            }
+                Sql = () => _context.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT utenti_schema.delete_user({id})"
+                ),
+                SuccessMessage = "Utente eliminato con successo",
+                ErrorMessage = "Errore eliminazione utente"
+            });
         }
 
         [HttpPut("update_ruolo_admin/{idUtente}")]
         public async Task<ActionResult> UpdateRuoloAdmin(string idUtente, [FromBody] UserRuoloUpdateForm ruoloForm)
         {
-            try
+            return await SqlFunc(new SqlTaskOptions
             {
-                await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $@"
+                Sql = () => _context.Database.ExecuteSqlRawAsync(
+                    @"
                         UPDATE utenti_schema.admin
-                        SET ruolo = {ruoloForm.ruolo}
-                        WHERE ""idUtente"" = {idUtente};
-                    "
-                );
-
-                await _cacheUserSemaphore.WaitAsync();
-
-                List<UserParams>? utentiInCache = _cache.Get<List<UserParams>>(_utentiCacheKey);
-                if (utentiInCache != null)
-                {
-                    UserParams? utenteDaAggiornare = utentiInCache.FirstOrDefault((UserParams u) => u.id == idUtente);
-                    if (utenteDaAggiornare != null)
-                    {
-                        utenteDaAggiornare.ruolo = ruoloForm.ruolo;
-                    }
-
-                    _cache.Set(_utentiCacheKey, utentiInCache, _cacheDuration);
-                }
-
-                return Ok(new { message = "Ruolo aggiornato con successo" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Errore interno del server: {ex.Message}");
-            }
-            finally
-            {
-                _cacheUserSemaphore.Release();
-            }
+                        SET ruolo = {0}
+                        WHERE ""idUtente"" = {1};
+                    ",
+                    ruoloForm.ruolo,
+                    idUtente
+                ),
+                SuccessMessage = "Ruolo aggiornato con successo",
+                ErrorMessage = "Errore aggiornamento ruolo"
+            });
         }
 
         private static Dictionary<string, string>? FormatSocial(JsonElement? socialElement)
@@ -277,7 +186,6 @@ namespace Utenti.Controllers
             {
                 return null;
             }
-
             try
             {
                 return JsonSerializer.Deserialize<Dictionary<string, string>>(socialElement.Value);
