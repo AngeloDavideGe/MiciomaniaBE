@@ -9,15 +9,15 @@ public class CacheService
         _cache = cache;
     }
 
-    public async Task<T?> GetOrCreate<T>(
+    public async Task<T> GetOrCreate<T>(
         string key,
         TimeSpan duration,
         Func<Task<T>> factory)
     {
-        return await _cache.GetOrCreateAsync(key, async entry =>
+        return (await _cache.GetOrCreateAsync(key, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = duration;
             return await factory();
-        });
+        }))!;
     }
 }

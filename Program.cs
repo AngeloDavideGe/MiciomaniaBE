@@ -3,6 +3,7 @@ using Data.ApplicationDbContext;
 using Views.DropboxSettings;
 using Squadre.Services;
 using AppTask.Services;
+using Posts.Services;
 
 WebApplicationOptions options = new WebApplicationOptions
 {
@@ -22,8 +23,9 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 }, lifetime: ServiceLifetime.Scoped);
 
 builder.Services.Configure<DropboxSettings>(builder.Configuration.GetSection("Dropbox"));
-builder.Services.AddScoped<SquadreService>();
 builder.Services.AddScoped<AppTaskService>();
+builder.Services.AddScoped<SquadreService>();
+builder.Services.AddScoped<PostsService>();
 builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
