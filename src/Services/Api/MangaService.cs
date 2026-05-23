@@ -1,4 +1,4 @@
-using System.Text.Json;
+using CacheName;
 using Data.ApplicationDbContext;
 using MangaForms;
 using MangaModels;
@@ -6,7 +6,6 @@ using MangaUtenteModels;
 using MangaViews;
 using Microsoft.EntityFrameworkCore;
 using TaskOption;
-
 
 namespace Manga.Services
 {
@@ -26,7 +25,6 @@ namespace Manga.Services
             _cacheService = cacheService;
         }
 
-        // Metodi di supporto
         public async Task<MangaUtenteGet> GetMangaUtente(string idUtente)
         {
             await using var context = _contextFactory.CreateDbContext();

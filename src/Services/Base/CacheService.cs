@@ -1,22 +1,24 @@
 using Microsoft.Extensions.Caching.Memory;
 using TaskOption;
 
-public class CacheService
+namespace CacheName
 {
-    private readonly IMemoryCache _cache;
-
-    public CacheService(IMemoryCache cache)
+    public class CacheService
     {
-        _cache = cache;
-    }
+        private readonly IMemoryCache _cache;
 
-    public async Task<T> GetOrCreate<T>(
-        CacheOptions<T> options)
-    {
-        return (await _cache.GetOrCreateAsync(options.NomeCache, async entry =>
+        public CacheService(IMemoryCache cache)
         {
-            entry.AbsoluteExpirationRelativeToNow = options.DurataCache;
-            return await options.Task();
-        }))!;
+            _cache = cache;
+        }
+
+        public async Task<T> GetOrCreate<T>(CacheOptions<T> options)
+        {
+            return (await _cache.GetOrCreateAsync(options.NomeCache, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = options.DurataCache;
+                return await options.Task();
+            }))!;
+        }
     }
 }
