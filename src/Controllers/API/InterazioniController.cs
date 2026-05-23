@@ -1,41 +1,36 @@
 using Data.ApplicationDbContext;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using InterazioniModels;
 using InterazioniViews;
 using PaginationForms;
 using InterazioniForms;
-using Microsoft.Extensions.Caching.Memory;
 using TaskOption;
+using Interazioni.Services;
+using AppTask.Services;
 
 namespace Interazioni.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class InterazioniController : UtilitiesController
+    public class InterazioniController
     {
+        private readonly InterazioniService _interazioniService;
+        private readonly AppTaskService _task;
+
         public InterazioniController(
-            AppDbContext context,
-            IDbContextFactory<AppDbContext> contextFactory,
-            IMemoryCache cache
-        ) : base(context, contextFactory, cache) { }
+            InterazioniService interazioniService,
+            AppTaskService taskService)
+        {
+            _interazioniService = interazioniService;
+            _task = taskService;
+        }
 
         [HttpGet("get_all_interazioni")]
         public async Task<ActionResult<List<InterazioniGet>>> GetAllInterazioni()
         {
-            return await SingleTask(new SingleTaskOptions<List<InterazioniGet>>
+            return await _task.SingleTask(new SingleTaskOptions<List<InterazioniGet>>
             {
-                Task = () => _context.Interazioni
-                    .Select(i => new InterazioniGet
-                    {
-                        id = i.id,
-                        user1 = i.user1,
-                        user2 = i.user2,
-                        conteggio = i.conteggio,
-                        ultimoInvio = i.ultimo_invio
-                    })
-                    .ToListAsync(),
-
+                Task = _interazioniService.GetAllInterazioni,
                 ErrorMessage = "Errore nel recupero delle interazioni"
             });
         }
@@ -43,20 +38,9 @@ namespace Interazioni.Controllers
         [HttpGet("get_interazioni_by_id/{idUser}")]
         public async Task<ActionResult<List<InterazioniGet>>> GetInterazioniById(string idUser)
         {
-            return await SingleTask(new SingleTaskOptions<List<InterazioniGet>>
+            return await _task.SingleTask(new SingleTaskOptions<List<InterazioniGet>>
             {
-                Task = () => _context.Interazioni
-                    .Where(i => i.user1 == idUser || i.user2 == idUser)
-                    .Select(i => new InterazioniGet
-                    {
-                        id = i.id,
-                        user1 = i.user1,
-                        user2 = i.user2,
-                        conteggio = i.conteggio,
-                        ultimoInvio = i.ultimo_invio
-                    })
-                    .ToListAsync(),
-
+                Task = () => _interazioniService.GetInterazioniById(idUser),
                 ErrorMessage = "Errore nel recupero delle interazioni utente"
             });
         }
@@ -64,23 +48,10 @@ namespace Interazioni.Controllers
         [HttpGet("get_interazioni_paginate")]
         public async Task<ActionResult<PaginazioneOutput<InterazioniGet>>> GetInterazioniPaginate([FromQuery] PaginazioneInput input)
         {
-            IQueryable<InterazioniDB> query = _context.Interazioni.AsQueryable();
-
-            query = input.order.ToLower() == "asc"
-                ? query.OrderBy(e => EF.Property<object>(e, input.orderKey))
-                : query.OrderByDescending(e => EF.Property<object>(e, input.orderKey));
-
-            using AppDbContext newContext = _contextFactory.CreateDbContext();
-
-            return await MultiTask(new MultiTaskOptions<int, List<InterazioniDB>, PaginazioneOutput<InterazioniGet>>
+            return await _task.MultiTask(new MultiTaskOptions<int, List<InterazioniDB>, PaginazioneOutput<InterazioniGet>>
             {
-                Task1 = () => newContext.Interazioni.CountAsync(),
-
-                Task2 = () => query
-                    .Skip((input.numPag - 1) * input.elemForPage)
-                    .Take(input.elemForPage)
-                    .ToListAsync(),
-
+                Task1 = _interazioniService.TotaleInterazioni,
+                Task2 = () => _interazioniService.GetInterazioniPaginate(input),
                 ResultFactory = (totElem, interazioni) =>
                     new PaginazioneOutput<InterazioniGet>
                     {
@@ -104,38 +75,9 @@ namespace Interazioni.Controllers
         [HttpPut("upsert_interazione")]
         public async Task<ActionResult> UpsertInterazione([FromBody] InterazioniPut input)
         {
-            return await SqlFunc(new SqlTaskOptions
+            return await _task.SqlFunc(new SqlTaskOptions
             {
-                Sql = async () =>
-                {
-                    InterazioniDB? interazioneEsistente = await _context.Interazioni
-                        .FirstOrDefaultAsync(i =>
-                            i.user1 == input.user1 &&
-                            i.user2 == input.user2);
-
-                    if (interazioneEsistente != null)
-                    {
-                        interazioneEsistente.conteggio += 1;
-                        interazioneEsistente.ultimo_invio = DateTime.UtcNow;
-
-                        _context.Interazioni.Update(interazioneEsistente);
-                    }
-                    else
-                    {
-                        var nuovaInterazione = new InterazioniDB
-                        {
-                            user1 = input.user1,
-                            user2 = input.user2,
-                            conteggio = 1,
-                            ultimo_invio = DateTime.UtcNow
-                        };
-
-                        _context.Interazioni.Add(nuovaInterazione);
-                    }
-
-                    await _context.SaveChangesAsync();
-                },
-
+                Sql = () => _interazioniService.UpsertInterazione(input),
                 SuccessMessage = "Interazione aggiornata con successo",
                 ErrorMessage = "Errore aggiornamento interazione"
             });

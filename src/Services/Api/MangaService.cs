@@ -38,7 +38,7 @@ namespace Manga.Services
                 .Where((MangaUtente m) => m.idUtente == idUtente)
                 .Select((MangaUtente m) => new MangaUtenteGet(m.preferiti, m.letti, m.completati))
                 .FirstOrDefaultAsync()
-                .ContinueWith(task => task.Result ?? new MangaUtenteGet("", "", ""));
+                .ContinueWith((Task<MangaUtenteGet?> task) => task.Result ?? new MangaUtenteGet("", "", ""));
         }
 
         public async Task<List<MangaClass>> GetAllMangaCache()

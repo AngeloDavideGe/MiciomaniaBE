@@ -1,50 +1,35 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Data.ApplicationDbContext;
-using UserModels;
 using UserViews;
 using UserForms;
-using Npgsql;
-using Microsoft.Extensions.Caching.Memory;
-using System.Text.Json;
 using TaskOption;
+using Utenti.Services;
+using AppTask.Services;
 
 namespace Utenti.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class UtentiController : UtilitiesController
+    public class UtentiController
     {
+        private readonly UtentiService _utentiService;
+        private readonly AppTaskService _task;
+
         public UtentiController(
-            AppDbContext context,
-            IDbContextFactory<AppDbContext> contextFactory,
-            IMemoryCache cache
-        ) : base(context, contextFactory, cache) { }
+          UtentiService utentiService,
+          AppTaskService task
+        )
+        {
+            _utentiService = utentiService;
+            _task = task;
+        }
 
         [HttpGet("get_all_utenti")]
         public async Task<ActionResult<List<UserParams>>> GetAllUtenti()
         {
-            return await SingleTask(new SingleTaskOptions<List<UserParams>>
+            return await _task.SingleTask(new SingleTaskOptions<List<UserParams>>
             {
-                Task = () => CacheFunc(new CacheOptions<List<UserParams>>
-                {
-                    NomeCache = "UtentiCache",
-                    DurataCache = TimeSpan.FromHours(2),
-                    Task = () => _context.Users
-                        .Join(
-                            _context.Admins,
-                            u => u.id,
-                            a => a.idUtente,
-                            (u, a) => new UserParams
-                            {
-                                id = u.id,
-                                nome = u.nome,
-                                profilePic = u.profilePic,
-                                ruolo = a.ruolo
-                            }
-                        )
-                        .ToListAsync()
-                })
+                Task = _utentiService.GetAllUtenti,
+                ErrorMessage = "Errore recupero utenti"
             });
         }
 
@@ -53,40 +38,9 @@ namespace Utenti.Controllers
             [FromQuery] string email,
             [FromQuery] string password)
         {
-            return await SingleTask(new SingleTaskOptions<UserJoin?>
+            return await _task.SingleTask(new SingleTaskOptions<UserJoin?>
             {
-                Task = () => _context.Users
-                    .Where(u => u.email == email && u.password == password)
-                    .Join(
-                        _context.Admins,
-                        u => u.id,
-                        a => a.idUtente,
-                        (u, a) => new { u, a }
-                    )
-                    .Join(
-                        _context.Giocatori,
-                        x => x.u.id,
-                        g => g.idUtente,
-                        (x, g) => new UserJoin
-                        {
-                            id = x.u.id,
-                            nome = x.u.nome,
-                            email = x.u.email,
-                            password = x.u.password,
-                            profilePic = x.u.profilePic,
-                            ruolo = x.a.ruolo,
-                            stato = x.u.stato,
-                            squadra = g.squadra,
-                            provincia = x.u.provincia,
-                            punteggio = g.punteggio,
-                            bio = x.u.bio,
-                            telefono = x.u.telefono,
-                            compleanno = x.u.compleanno,
-                            social = FormatSocial(x.u.social)
-                        }
-                    )
-                    .FirstOrDefaultAsync(),
-
+                Task = () => _utentiService.GetUtenteByCredentials(email, password),
                 ErrorMessage = "Utente non trovato"
             });
         }
@@ -94,21 +48,9 @@ namespace Utenti.Controllers
         [HttpPost("post_utente")]
         public async Task<ActionResult> PostUser([FromBody] UserPostForm userForm)
         {
-            User? existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.id == userForm.nome);
-
-            if (existingUser != null)
-                return Conflict("Username già esistente");
-
-            return await SqlFunc(new SqlTaskOptions
+            return await _task.SqlFunc(new SqlTaskOptions
             {
-                Sql = () => _context.Database.ExecuteSqlRawAsync(
-                    "SELECT utenti_schema.create_user_complete({0}, {1}, {2}, {3})",
-                    userForm.username,
-                    userForm.nome,
-                    userForm.email,
-                    userForm.password
-                ),
+                Sql = () => _utentiService.AggiungiUtente(userForm),
                 SuccessMessage = "Utente aggiunto con successo",
                 ErrorMessage = "Errore creazione utente"
             });
@@ -117,32 +59,9 @@ namespace Utenti.Controllers
         [HttpPut("update_utente/{id}")]
         public async Task<ActionResult> UpdateUser(string id, [FromBody] UserUpdate userForm)
         {
-            var compleannoParam = new NpgsqlParameter(
-                "compleanno",
-                NpgsqlTypes.NpgsqlDbType.Timestamp
-            )
+            return await _task.SqlFunc(new SqlTaskOptions
             {
-                Value = DateTime.SpecifyKind(userForm.compleanno, DateTimeKind.Unspecified)
-            };
-
-            return await SqlFunc(new SqlTaskOptions
-            {
-                Sql = () => _context.Database.ExecuteSqlInterpolatedAsync(
-                    $@"SELECT utenti_schema.update_user_complete(
-                        {id},
-                        {userForm.nome},
-                        {userForm.email},
-                        {userForm.password},
-                        {userForm.profilePic},
-                        {userForm.stato},
-                        {userForm.provincia},
-                        {userForm.bio},
-                        {userForm.telefono},
-                        {userForm.squadra},
-                        {compleannoParam},
-                        {JsonSerializer.Serialize(userForm.social)}
-                    )"
-                ),
+                Sql = () => _utentiService.AggiornaUtente(id, userForm),
                 SuccessMessage = "Utente aggiornato con successo",
                 ErrorMessage = "Errore aggiornamento utente"
             });
@@ -151,11 +70,9 @@ namespace Utenti.Controllers
         [HttpDelete("delete_utente/{id}")]
         public async Task<ActionResult> DeleteUser(string id)
         {
-            return await SqlFunc(new SqlTaskOptions
+            return await _task.SqlFunc(new SqlTaskOptions
             {
-                Sql = () => _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"SELECT utenti_schema.delete_user({id})"
-                ),
+                Sql = () => _utentiService.EliminaUtente(id),
                 SuccessMessage = "Utente eliminato con successo",
                 ErrorMessage = "Errore eliminazione utente"
             });
@@ -164,37 +81,12 @@ namespace Utenti.Controllers
         [HttpPut("update_ruolo_admin/{idUtente}")]
         public async Task<ActionResult> UpdateRuoloAdmin(string idUtente, [FromBody] UserRuoloUpdateForm ruoloForm)
         {
-            return await SqlFunc(new SqlTaskOptions
+            return await _task.SqlFunc(new SqlTaskOptions
             {
-                Sql = () => _context.Database.ExecuteSqlRawAsync(
-                    @"
-                        UPDATE utenti_schema.admin
-                        SET ruolo = {0}
-                        WHERE ""idUtente"" = {1};
-                    ",
-                    ruoloForm.ruolo,
-                    idUtente
-                ),
+                Sql = () => _utentiService.AggiornaRuoloAdmin(idUtente, ruoloForm),
                 SuccessMessage = "Ruolo aggiornato con successo",
                 ErrorMessage = "Errore aggiornamento ruolo"
             });
         }
-
-        private static Dictionary<string, string>? FormatSocial(JsonElement? socialElement)
-        {
-            if (socialElement == null || !socialElement.HasValue || socialElement.Value.ValueKind == JsonValueKind.Null)
-            {
-                return null;
-            }
-            try
-            {
-                return JsonSerializer.Deserialize<Dictionary<string, string>>(socialElement.Value);
-            }
-            catch
-            {
-                return null;
-            }
-        }
     }
-
 }

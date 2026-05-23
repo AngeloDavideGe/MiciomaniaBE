@@ -26,7 +26,7 @@ namespace Posts.Services
             await using var context = _contextFactory.CreateDbContext();
 
             return await context.Users
-                .FirstOrDefaultAsync(u => u.id == idUtente)
+                .FirstOrDefaultAsync((User u) => u.id == idUtente)
                 ?? throw new Exception("Utente non trovato");
         }
 
@@ -35,8 +35,8 @@ namespace Posts.Services
             await using var context = _contextFactory.CreateDbContext();
 
             return await context.Tweets
-                .Where(t => t.idUtente == idUtente)
-                .OrderByDescending(t => t.dataCreazione)
+                .Where((Tweet t) => t.idUtente == idUtente)
+                .OrderByDescending((Tweet t) => t.dataCreazione)
                 .Take(20)
                 .ToListAsync();
         }

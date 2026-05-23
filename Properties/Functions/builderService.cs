@@ -1,11 +1,13 @@
 using AppTask.Services;
 using CacheName;
 using Data.ApplicationDbContext;
+using Interazioni.Services;
 using Manga.Services;
 using Microsoft.EntityFrameworkCore;
 using Parodie.Services;
 using Posts.Services;
 using Squadre.Services;
+using Utenti.Services;
 using Views.DropboxSettings;
 
 public static class BuilderService
@@ -28,6 +30,8 @@ public static class BuilderService
         builder.Services.AddScoped<PostsService>();
         builder.Services.AddScoped<MangaService>();
         builder.Services.AddScoped<ParodieService>();
+        builder.Services.AddScoped<InterazioniService>();
+        builder.Services.AddScoped<UtentiService>();
         builder.Services.AddHttpClient();
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();

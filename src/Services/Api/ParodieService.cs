@@ -50,7 +50,7 @@ namespace Parodie.Services
             return await _context.MangaUserPar
                 .Where((MangaUtentePar m) => m.idUtente == idUtente)
                 .FirstOrDefaultAsync()
-                .ContinueWith(task => task.Result ?? new MangaUtentePar());
+                .ContinueWith((Task<MangaUtentePar?> task) => task.Result ?? new MangaUtentePar());
         }
 
         public async Task<CanzoniUtente> GetCanzoneUtente(string idUtente)
@@ -60,7 +60,7 @@ namespace Parodie.Services
             return await newContext.CanzoniUser
                 .Where((CanzoniUtente m) => m.idUtente == idUtente)
                 .FirstOrDefaultAsync()
-                .ContinueWith(task => task.Result ?? new CanzoniUtente());
+                .ContinueWith((Task<CanzoniUtente?> task) => task.Result ?? new CanzoniUtente());
         }
 
         public Task updateParodieUtente(string id, ParodieUtenteForm parodieForm)
