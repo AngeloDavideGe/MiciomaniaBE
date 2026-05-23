@@ -1,10 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Data.ApplicationDbContext;
-using Views.DropboxSettings;
-using Squadre.Services;
-using AppTask.Services;
-using Posts.Services;
-
 WebApplicationOptions options = new WebApplicationOptions
 {
     ContentRootPath = Directory.GetCurrentDirectory(),
@@ -12,36 +5,7 @@ WebApplicationOptions options = new WebApplicationOptions
 };
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(options);
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddDbContextFactory<AppDbContext>(options =>
-{
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
-    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-}, lifetime: ServiceLifetime.Scoped);
-
-builder.Services.Configure<DropboxSettings>(builder.Configuration.GetSection("Dropbox"));
-builder.Services.AddScoped<AppTaskService>();
-builder.Services.AddScoped<SquadreService>();
-builder.Services.AddScoped<PostsService>();
-builder.Services.AddHttpClient();
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGenWithSecurity();
-builder.Services.AddMemoryCache();
-
-builder.Services.AddCors(corsOptions =>
-{
-    corsOptions.AddDefaultPolicy(policy =>
-    {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
+builder = BuilderService.GetBuilderService(builder);
 
 WebApplication app = builder.Build();
 

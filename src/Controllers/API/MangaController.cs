@@ -1,64 +1,54 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Data.ApplicationDbContext;
 using MangaViews;
 using MangaModels;
-using MangaUtenteModels;
 using MangaForms;
-using Microsoft.Extensions.Caching.Memory;
 using TaskOption;
+using AppTask.Services;
+using Manga.Services;
 
 namespace Manga.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class MangaController : UtilitiesController
+    public class MangaController
     {
-        public MangaController(
-            AppDbContext context,
-            IDbContextFactory<AppDbContext> contextFactory,
-            IMemoryCache cache
-        ) : base(context, contextFactory, cache) { }
+        private readonly MangaService _mangaService;
+        private readonly AppTaskService _tasks;
+
+        public MangaController(MangaService mangaService, AppTaskService tasks)
+        {
+            _mangaService = mangaService;
+            _tasks = tasks;
+        }
 
         [HttpGet("get_all_manga")]
         public async Task<ActionResult<List<MangaClass>>> GetAllManga()
         {
-            return await SingleTask(new SingleTaskOptions<List<MangaClass>>
+            return await _tasks.SingleTask(new SingleTaskOptions<List<MangaClass>>
             {
-                Task = GetAllMangaCache,
+                Task = _mangaService.GetAllMangaCache,
                 ErrorMessage = "Errore nel recupero dei manga"
             });
         }
 
         [HttpGet("get_manga_preferiti")]
-        public async Task<ActionResult<MangaUtente>> GetMangaPreferiti([FromQuery] string idUtente)
+        public async Task<ActionResult<MangaUtenteGet>> GetMangaPreferiti([FromQuery] string idUtente)
         {
-            MangaUtenteGet mangaUtente =
-                await GetMangaUtente(_context, idUtente)
-                ?? new MangaUtenteGet("", "", "");
-
-            return Ok(mangaUtente);
+            return await _tasks.SingleTask(new SingleTaskOptions<MangaUtenteGet>
+            {
+                Task = () => _mangaService.GetMangaUtente(idUtente),
+                ErrorMessage = "Errore nel recupero dei manga"
+            });
         }
 
         [HttpGet("get_all_manga_e_preferiti")]
         public async Task<ActionResult<MangaEPreferiti>> GetAllMangaEPreferiti([FromQuery] string idUtente)
         {
-            using AppDbContext newContext = _contextFactory.CreateDbContext();
-
-            return await MultiTask(new MultiTaskOptions<List<MangaClass>, MangaUtenteGet?, MangaEPreferiti>
+            return await _tasks.MultiTask(new MultiTaskOptions<List<MangaClass>, MangaUtenteGet, MangaEPreferiti>
             {
-                Task1 = GetAllMangaCache!,
-
-                Task2 = () => string.IsNullOrEmpty(idUtente)
-                    ? Task.FromResult<MangaUtenteGet?>(null)
-                    : GetMangaUtente(newContext, idUtente),
-
-                ResultFactory = (manga, preferiti) =>
-                    new MangaEPreferiti(
-                        manga,
-                        preferiti ?? new MangaUtenteGet("", "", "")
-                    ),
-
+                Task1 = _mangaService.GetAllMangaCache,
+                Task2 = () => _mangaService.GetMangaUtente(idUtente),
+                ResultFactory = (manga, preferiti) => new MangaEPreferiti(manga, preferiti),
                 ErrorMessage = "Errore nel recupero Manga e Preferiti"
             });
         }
@@ -66,24 +56,9 @@ namespace Manga.Controllers
         [HttpPost("post_manga")]
         public async Task<ActionResult> PostManga([FromBody] MangaClass mangaForm)
         {
-            return await SqlFunc(new SqlTaskOptions
+            return await _tasks.SqlFunc(new SqlTaskOptions
             {
-                Sql = async () =>
-                {
-                    var newManga = new MangaClass
-                    {
-                        nome = mangaForm.nome,
-                        autore = mangaForm.autore,
-                        genere = mangaForm.genere,
-                        copertina = mangaForm.copertina,
-                        path = mangaForm.path,
-                        completato = mangaForm.completato
-                    };
-
-                    _context.ListaManga.Add(newManga);
-                    await _context.SaveChangesAsync();
-                },
-
+                Sql = () => _mangaService.AggiungiManga(mangaForm),
                 SuccessMessage = "Manga aggiunto con successo",
                 ErrorMessage = "Errore inserimento manga"
             });
@@ -92,55 +67,11 @@ namespace Manga.Controllers
         [HttpPut("upsert_manga_preferiti/{idUtente}")]
         public async Task<ActionResult> UpdateMangaPreferiti(string idUtente, [FromBody] MangaUtenteForm nuoviManga)
         {
-            return await SqlFunc(new SqlTaskOptions
+            return await _tasks.SqlFunc(new SqlTaskOptions
             {
-                Sql = async () =>
-                {
-                    MangaUtente? mangaUtente = await _context.MangaUtenti
-                        .FirstOrDefaultAsync(mu => mu.idUtente == idUtente);
-
-                    if (mangaUtente == null)
-                    {
-                        mangaUtente = new MangaUtente
-                        {
-                            idUtente = idUtente,
-                            letti = nuoviManga.letti,
-                            completati = nuoviManga.completati,
-                            preferiti = nuoviManga.preferiti
-                        };
-                        _context.MangaUtenti.Add(mangaUtente);
-                    }
-                    else
-                    {
-                        mangaUtente.letti = nuoviManga.letti ?? mangaUtente.letti;
-                        mangaUtente.completati = nuoviManga.completati ?? mangaUtente.completati;
-                        mangaUtente.preferiti = nuoviManga.preferiti ?? mangaUtente.preferiti;
-
-                        _context.MangaUtenti.Update(mangaUtente);
-                    }
-                    await _context.SaveChangesAsync();
-                },
+                Sql = () => _mangaService.UpsertManga(idUtente, nuoviManga),
                 SuccessMessage = $"Manga utente aggiornati per {idUtente}",
                 ErrorMessage = "Errore aggiornamento manga utente"
-            });
-        }
-
-        // Metodi di supporto
-        private Task<MangaUtenteGet?> GetMangaUtente(AppDbContext context, string idUtente)
-        {
-            return context.MangaUtenti
-                .Where((MangaUtente m) => m.idUtente == idUtente)
-                .Select((MangaUtente m) => new MangaUtenteGet(m.preferiti, m.letti, m.completati))
-                .FirstOrDefaultAsync();
-        }
-
-        private async Task<List<MangaClass>> GetAllMangaCache()
-        {
-            return await CacheFunc(new CacheOptions<List<MangaClass>>
-            {
-                Task = () => _context.ListaManga.ToListAsync(),
-                NomeCache = "AllManga",
-                DurataCache = TimeSpan.FromHours(2)
             });
         }
     }

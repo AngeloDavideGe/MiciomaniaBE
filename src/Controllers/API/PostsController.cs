@@ -37,12 +37,12 @@ namespace Posts.Controllers
         {
             return await _tasks.MultiTask(new MultiTaskOptions<User, List<Tweet>, Profilo>
             {
-                Task1 = () => _postsService.GetUser(idUtente)!,
+                Task1 = () => _postsService.GetUser(idUtente),
                 Task2 = () => _postsService.GetUserTweets(idUtente),
                 ResultFactory = (user, tweets) => new Profilo(
                     new UserPost
                     {
-                        id = user!.id,
+                        id = user.id,
                         nome = user.nome,
                         email = user.email,
                         password = user.password,

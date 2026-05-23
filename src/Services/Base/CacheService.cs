@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using TaskOption;
 
 public class CacheService
 {
@@ -10,14 +11,12 @@ public class CacheService
     }
 
     public async Task<T> GetOrCreate<T>(
-        string key,
-        TimeSpan duration,
-        Func<Task<T>> factory)
+        CacheOptions<T> options)
     {
-        return (await _cache.GetOrCreateAsync(key, async entry =>
+        return (await _cache.GetOrCreateAsync(options.NomeCache, async entry =>
         {
-            entry.AbsoluteExpirationRelativeToNow = duration;
-            return await factory();
+            entry.AbsoluteExpirationRelativeToNow = options.DurataCache;
+            return await options.Task();
         }))!;
     }
 }

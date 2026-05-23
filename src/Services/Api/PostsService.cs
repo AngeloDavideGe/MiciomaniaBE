@@ -21,12 +21,13 @@ namespace Posts.Services
             _contextFactory = contextFactory;
         }
 
-        public async Task<User?> GetUser(string idUtente)
+        public async Task<User> GetUser(string idUtente)
         {
             await using var context = _contextFactory.CreateDbContext();
 
             return await context.Users
-                .FirstOrDefaultAsync(u => u.id == idUtente);
+                .FirstOrDefaultAsync(u => u.id == idUtente)
+                ?? throw new Exception("Utente non trovato");
         }
 
         public async Task<List<Tweet>> GetUserTweets(string idUtente)
