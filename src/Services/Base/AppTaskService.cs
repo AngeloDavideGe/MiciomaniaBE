@@ -17,7 +17,12 @@ namespace AppTask.Services
             {
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
-                    $"{options.ErrorMessage}: {ex.Message}"
+                    new ProblemDetails
+                    {
+                        Title = options.ErrorMessage,
+                        Detail = ex.Message,
+                        Status = StatusCodes.Status500InternalServerError
+                    }
                 );
             }
         }
@@ -40,7 +45,12 @@ namespace AppTask.Services
             {
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
-                    $"{options.ErrorMessage}: {ex.Message}"
+                    new ProblemDetails
+                    {
+                        Title = options.ErrorMessage,
+                        Detail = ex.Message,
+                        Status = StatusCodes.Status500InternalServerError
+                    }
                 );
             }
         }
@@ -57,7 +67,12 @@ namespace AppTask.Services
             {
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
-                    $"{options.ErrorMessage}: {ex.Message}"
+                    new ProblemDetails
+                    {
+                        Title = options.ErrorMessage,
+                        Detail = ex.Message,
+                        Status = StatusCodes.Status500InternalServerError
+                    }
                 );
             }
         }
