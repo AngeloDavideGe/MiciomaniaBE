@@ -20,9 +20,9 @@ namespace Squadre.Services
             _contextFactory = contextFactory;
         }
 
-        public Task<List<SquadraView>> GetSquadre()
+        public async Task<List<SquadraView>> GetSquadre()
         {
-            return _context.Squadre
+            return await _context.Squadre
                 .Select((Squadra s) => new SquadraView
                 {
                     nome = s.nome,
@@ -33,11 +33,11 @@ namespace Squadre.Services
                 .ToListAsync();
         }
 
-        public Task<List<Giocatore>> GetTopGiocatori()
+        public async Task<List<Giocatore>> GetTopGiocatori()
         {
-            using AppDbContext newContext = _contextFactory.CreateDbContext();
+            await using AppDbContext newContext = _contextFactory.CreateDbContext();
 
-            return newContext.Giocatori
+            return await newContext.Giocatori
                 .Where((Giocatore g) => g.punteggio > 0)
                 .OrderByDescending((Giocatore g) => g.punteggio)
                 .Take(5)
