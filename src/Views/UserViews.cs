@@ -8,36 +8,36 @@ namespace UserViews
         public string ruolo { get; set; } = "";
     }
 
-    public class UserJoin
+    public class UserDto
     {
         public string id { get; set; } = "";
+        public CredenzialiDto credenziali { get; set; } = new();
+        public ProfileDto profile { get; set; } = new();
+        public IscrizioneDto iscrizione { get; set; } = new();
+    }
+
+    public class CredenzialiDto
+    {
         public string nome { get; set; } = "";
         public string email { get; set; } = "";
         public string password { get; set; } = "";
-        public string? profilePic { get; set; } = "";
+        public string? profilePic { get; set; }
         public string ruolo { get; set; } = "";
-        public string? stato { get; set; } = "";
-        public string squadra { get; set; } = "";
-        public string? provincia { get; set; } = "";
-        public int punteggio { get; set; }
-        public string? bio { get; set; } = "";
-        public string? telefono { get; set; } = "";
+    }
+
+    public class ProfileDto
+    {
+        public string? bio { get; set; }
+        public string? telefono { get; set; }
         public DateTime? compleanno { get; set; }
         public Dictionary<string, string>? social { get; set; }
     }
 
-    public class UserUpdate
+    public class IscrizioneDto
     {
-        public string nome { get; set; } = "";
-        public string email { get; set; } = "";
-        public string password { get; set; } = "";
-        public string profilePic { get; set; } = "";
-        public string stato { get; set; } = "";
-        public string provincia { get; set; } = "";
-        public string bio { get; set; } = "";
-        public string telefono { get; set; } = "";
-        public string squadra { get; set; } = "";
-        public DateTime compleanno { get; set; }
-        public Dictionary<string, string>? social { get; set; }
+        public string? stato { get; set; }
+        public string? squadra { get; set; }
+        public string? provincia { get; set; }
+        public int? punteggio { get; set; }
     }
 }

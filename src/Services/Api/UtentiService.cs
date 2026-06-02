@@ -49,39 +49,47 @@ namespace Utenti.Services
             });
         }
 
-        public async Task<UserJoin?> GetUtenteByCredentials(string email, string password)
+        public async Task<UserDto?> GetUtenteByCredentials(string email, string password)
         {
-            return await _context.Users
-                .Where((User u) => u.email == email && u.password == password)
-                .Join(
-                    _context.Admins,
-                    (User u) => u.id,
-                    (Admin a) => a.idUtente,
-                    (User u, Admin a) => new { u, a }
-                )
-                .Join(
-                    _context.Giocatori,
-                    x => x.u.id,
-                    g => g.idUtente,
-                    (x, g) => new UserJoin
+            return await (
+                from u in _context.Users
+                where u.email == email && u.password == password
+
+                join a in _context.Admins
+                    on u.id equals a.idUtente into adminGroup
+                from admin in adminGroup.DefaultIfEmpty()
+
+                join g in _context.Giocatori
+                    on u.id equals g.idUtente into giocatoreGroup
+                from giocatore in giocatoreGroup.DefaultIfEmpty()
+
+                select new UserDto
+                {
+                    id = u.id,
+                    credenziali = new CredenzialiDto
                     {
-                        id = x.u.id,
-                        nome = x.u.nome,
-                        email = x.u.email,
-                        password = x.u.password,
-                        profilePic = x.u.profilePic,
-                        ruolo = x.a.ruolo,
-                        stato = x.u.stato,
-                        squadra = g.squadra,
-                        provincia = x.u.provincia,
-                        punteggio = g.punteggio,
-                        bio = x.u.bio,
-                        telefono = x.u.telefono,
-                        compleanno = x.u.compleanno,
-                        social = FormatSocial(x.u.social)
+                        nome = u.nome,
+                        email = u.email,
+                        password = u.password,
+                        profilePic = u.profilePic,
+                        ruolo = admin != null ? admin.ruolo : "user"
+                    },
+                    profile = new ProfileDto
+                    {
+                        bio = u.bio,
+                        telefono = u.telefono,
+                        compleanno = u.compleanno,
+                        social = FormatSocial(u.social)
+                    },
+                    iscrizione = new IscrizioneDto
+                    {
+                        stato = u.stato,
+                        squadra = giocatore != null ? giocatore.squadra : null,
+                        provincia = u.provincia,
+                        punteggio = giocatore != null ? giocatore.punteggio : null
                     }
-                )
-                .FirstOrDefaultAsync();
+                }
+            ).FirstOrDefaultAsync();
         }
 
         public Task AggiungiUtente(UserPostForm userForm)
@@ -95,30 +103,30 @@ namespace Utenti.Services
             );
         }
 
-        public Task AggiornaUtente(string id, UserUpdate userForm)
+        public Task AggiornaUtente(string id, UserDto userForm)
         {
             var compleannoParam = new NpgsqlParameter(
                 "compleanno",
                 NpgsqlTypes.NpgsqlDbType.Timestamp
             )
             {
-                Value = DateTime.SpecifyKind(userForm.compleanno, DateTimeKind.Unspecified)
+                Value = DateTime.SpecifyKind(userForm.profile.compleanno ?? DateTime.MinValue, DateTimeKind.Unspecified)
             };
 
             return _context.Database.ExecuteSqlInterpolatedAsync(
                 $@"SELECT utenti_schema.update_user_complete(
                     {id},
-                    {userForm.nome},
-                    {userForm.email},
-                    {userForm.password},
-                    {userForm.profilePic},
-                    {userForm.stato},
-                    {userForm.provincia},
-                    {userForm.bio},
-                    {userForm.telefono},
-                    {userForm.squadra},
+                    {userForm.credenziali.nome},
+                    {userForm.credenziali.email},
+                    {userForm.credenziali.password},
+                    {userForm.credenziali.profilePic},
+                    {userForm.iscrizione.stato},
+                    {userForm.iscrizione.provincia},
+                    {userForm.profile.bio},
+                    {userForm.profile.telefono},
+                    {userForm.iscrizione.squadra},
                     {compleannoParam},
-                    {JsonSerializer.Serialize(userForm.social)}
+                    {JsonSerializer.Serialize(userForm.profile.social)}
                 )"
             );
         }
@@ -135,7 +143,7 @@ namespace Utenti.Services
             return _context.Database.ExecuteSqlInterpolatedAsync(
                 $@"
                     UPDATE utenti_schema.admin
-                    SET ruolo = {ruolo}
+                    SET ruolo = {ruolo.ruolo}
                     WHERE ""idUtente"" = {idUtente};
                 "
             );

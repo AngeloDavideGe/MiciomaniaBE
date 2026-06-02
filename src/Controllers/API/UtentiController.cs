@@ -34,11 +34,11 @@ namespace Utenti.Controllers
         }
 
         [HttpGet("get_utente_by_email")]
-        public async Task<ActionResult<UserJoin?>> GetUtenteByCredentials(
+        public async Task<ActionResult<UserDto?>> GetUtenteByCredentials(
             [FromQuery] string email,
             [FromQuery] string password)
         {
-            return await _task.SingleTask(new SingleTaskOptions<UserJoin?>
+            return await _task.SingleTask(new SingleTaskOptions<UserDto?>
             {
                 Task = () => _utentiService.GetUtenteByCredentials(email, password),
                 ErrorMessage = "Utente non trovato"
@@ -57,7 +57,7 @@ namespace Utenti.Controllers
         }
 
         [HttpPut("update_utente/{id}")]
-        public async Task<ActionResult> UpdateUser(string id, [FromBody] UserUpdate userForm)
+        public async Task<ActionResult> UpdateUser(string id, [FromBody] UserDto userForm)
         {
             return await _task.SqlFunc(new SqlTaskOptions
             {
