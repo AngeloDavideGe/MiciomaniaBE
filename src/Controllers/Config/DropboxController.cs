@@ -22,26 +22,21 @@ public class DropboxController : ControllerBase
 
     [HttpPost("upload")]
     public async Task<ActionResult<UploadResponse>> Upload(
-        IFormFile file,
-        [FromForm] string userId,
-        [FromForm] string folderPath,
-        [FromForm] string? oldLink)
+    IFormFile file,
+    [FromForm] string userId,
+    [FromForm] string folderPath)
     {
         try
         {
             HttpClient client = _httpClientFactory.CreateClient();
 
-            // =========================
-            // 1. GET ACCESS TOKEN
-            // =========================
-
             FormUrlEncodedContent tokenContent =
                 new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    { "grant_type", "refresh_token" },
-                    { "refresh_token", _dropboxSettings.RefreshToken },
-                    { "client_id", _dropboxSettings.ClientId },
-                    { "client_secret", _dropboxSettings.ClientSecret }
+                { "grant_type", "refresh_token" },
+                { "refresh_token", _dropboxSettings.RefreshToken },
+                { "client_id", _dropboxSettings.ClientId },
+                { "client_secret", _dropboxSettings.ClientSecret }
                 });
 
             HttpResponseMessage tokenResponse =
@@ -70,29 +65,14 @@ public class DropboxController : ControllerBase
                     .GetProperty("access_token")
                     .GetString()!;
 
-            // =========================
-            // 2. UPLOAD FILE
-            // =========================
+            string extension =
+                Path.GetExtension(file.FileName);
 
-            string extension = Path.GetExtension(file.FileName);
-            string fileName = $"FileUtente{extension}";
-            string dropboxPath = $"/{folderPath}/{userId}/{fileName}";
+            string fileName =
+                Path.GetFileNameWithoutExtension(folderPath) + extension;
 
-            client.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue(
-                    "Bearer",
-                    accessToken
-                );
-
-            client.DefaultRequestHeaders.Add(
-                "Dropbox-API-Arg",
-                JsonSerializer.Serialize(new
-                {
-                    path = dropboxPath,
-                    mode = "overwrite",
-                    autorename = false,
-                    mute = false
-                }));
+            string dropboxPath =
+                $"/Utenti/{userId}/{fileName}";
 
             byte[] fileBytes;
 
@@ -102,17 +82,38 @@ public class DropboxController : ControllerBase
                 fileBytes = ms.ToArray();
             }
 
+            HttpRequestMessage uploadRequest =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    "https://content.dropboxapi.com/2/files/upload"
+                );
+
+            uploadRequest.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    accessToken
+                );
+
+            uploadRequest.Headers.Add(
+                "Dropbox-API-Arg",
+                JsonSerializer.Serialize(new
+                {
+                    path = dropboxPath,
+                    mode = "overwrite",
+                    autorename = false,
+                    mute = false
+                }));
+
             ByteArrayContent fileContent =
                 new ByteArrayContent(fileBytes);
 
             fileContent.Headers.ContentType =
                 new MediaTypeHeaderValue("application/octet-stream");
 
+            uploadRequest.Content = fileContent;
+
             HttpResponseMessage uploadResponse =
-                await client.PostAsync(
-                    "https://content.dropboxapi.com/2/files/upload",
-                    fileContent
-                );
+                await client.SendAsync(uploadRequest);
 
             if (!uploadResponse.IsSuccessStatusCode)
             {
@@ -123,22 +124,6 @@ public class DropboxController : ControllerBase
                     (int)uploadResponse.StatusCode,
                     uploadError);
             }
-
-            // =========================
-            // 3. RETURN OLD LINK
-            // =========================
-
-            if (!string.IsNullOrWhiteSpace(oldLink))
-            {
-                return Ok(new
-                {
-                    url = oldLink
-                });
-            }
-
-            // =========================
-            // 4. CREATE SHARED LINK
-            // =========================
 
             HttpRequestMessage shareRequest =
                 new HttpRequestMessage(
@@ -163,34 +148,95 @@ public class DropboxController : ControllerBase
                         }
                     }),
                     Encoding.UTF8,
-                    "application/json");
+                    "application/json"
+                );
 
             HttpResponseMessage shareResponse =
                 await client.SendAsync(shareRequest);
 
-            string shareJson = await shareResponse.Content.ReadAsStringAsync();
+            string shareJson =
+                await shareResponse.Content.ReadAsStringAsync();
 
             if (!shareResponse.IsSuccessStatusCode)
             {
+                // Se il link condiviso esiste già
+                if (shareJson.Contains("shared_link_already_exists"))
+                {
+                    HttpRequestMessage existingLinkRequest =
+                        new HttpRequestMessage(
+                            HttpMethod.Post,
+                            "https://api.dropboxapi.com/2/sharing/list_shared_links"
+                        );
+
+                    existingLinkRequest.Headers.Authorization =
+                        new AuthenticationHeaderValue(
+                            "Bearer",
+                            accessToken
+                        );
+
+                    existingLinkRequest.Content =
+                        new StringContent(
+                            JsonSerializer.Serialize(new
+                            {
+                                path = dropboxPath,
+                                direct_only = true
+                            }),
+                            Encoding.UTF8,
+                            "application/json"
+                        );
+
+                    HttpResponseMessage existingLinkResponse =
+                        await client.SendAsync(existingLinkRequest);
+
+                    string existingLinkJson =
+                        await existingLinkResponse.Content.ReadAsStringAsync();
+
+                    if (!existingLinkResponse.IsSuccessStatusCode)
+                    {
+                        return StatusCode(
+                            (int)existingLinkResponse.StatusCode,
+                            existingLinkJson
+                        );
+                    }
+
+                    using JsonDocument existingDoc =
+                        JsonDocument.Parse(existingLinkJson);
+
+                    string existingUrl =
+                        existingDoc.RootElement
+                            .GetProperty("links")[0]
+                            .GetProperty("url")
+                            .GetString()!;
+
+                    string existingDirectUrl =
+                        existingUrl
+                            .Replace("www.dropbox.com", "dl.dropboxusercontent.com")
+                            .Replace("?dl=0", "");
+
+                    return Ok(new
+                    {
+                        url = existingDirectUrl
+                    });
+                }
+
                 return StatusCode(
                     (int)shareResponse.StatusCode,
                     shareJson
                 );
             }
 
-            using JsonDocument shareDoc = JsonDocument.Parse(shareJson);
+            using JsonDocument shareDoc =
+                JsonDocument.Parse(shareJson);
 
-            string sharedUrl = shareDoc.RootElement
-                .GetProperty("url")
-                .GetString()!;
+            string sharedUrl =
+                shareDoc.RootElement
+                    .GetProperty("url")
+                    .GetString()!;
 
-            // =========================
-            // 5. DIRECT LINK
-            // =========================
-
-            string directUrl = sharedUrl
-                .Replace("www.dropbox.com", "dl.dropboxusercontent.com")
-                .Replace("?dl=0", "");
+            string directUrl =
+                sharedUrl
+                    .Replace("www.dropbox.com", "dl.dropboxusercontent.com")
+                    .Replace("?dl=0", "");
 
             return Ok(new
             {
