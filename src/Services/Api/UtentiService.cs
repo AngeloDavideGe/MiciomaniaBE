@@ -4,6 +4,7 @@ using CacheName;
 using Data.ApplicationDbContext;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using TaskOption;
 using UserForms;
 using UserModels;
 using UserViews;
@@ -13,22 +14,19 @@ namespace Utenti.Services
     public class UtentiService
     {
         private readonly AppDbContext _context;
-        private readonly IDbContextFactory<AppDbContext> _contextFactory;
         private readonly CacheService _cache;
 
         public UtentiService(
             AppDbContext context,
-            IDbContextFactory<AppDbContext> contextFactory,
             CacheService cache)
         {
             _context = context;
-            _contextFactory = contextFactory;
             _cache = cache;
         }
 
         public Task<List<UserParams>> GetAllUtenti()
         {
-            return _cache.GetOrCreate(new TaskOption.CacheOptions<List<UserParams>>
+            return _cache.GetOrCreate(new CacheOptions<List<UserParams>>
             {
                 NomeCache = "UtentiCache",
                 DurataCache = TimeSpan.FromHours(2),
@@ -138,15 +136,33 @@ namespace Utenti.Services
             );
         }
 
-        public Task AggiornaRuoloAdmin(string idUtente, UserRuoloUpdateForm ruolo)
+        public async Task AggiornaRuoloAdmin(string idUtente, UserRuoloUpdateForm ruolo)
         {
-            return _context.Database.ExecuteSqlInterpolatedAsync(
-                $@"
-                    UPDATE utenti_schema.admin
-                    SET ruolo = {ruolo.ruolo}
-                    WHERE ""idUtente"" = {idUtente};
-                "
+            Task task1 = _context.Database.ExecuteSqlInterpolatedAsync(
+                $@"UPDATE utenti_schema.admin 
+                SET ruolo = {ruolo.ruolo} 
+                WHERE ""idUtente"" = {idUtente};"
             );
+
+            Task task2 = _cache.UpdateCache(
+                new CacheUpdate<List<UserParams>>
+                {
+                    NomeCache = "UtentiCache",
+                    DurataCache = TimeSpan.FromHours(2),
+                    Task = (List<UserParams> utenti) =>
+                    {
+                        UserParams? utente = utenti.FirstOrDefault(u => u.id == idUtente);
+                        if (utente != null)
+                        {
+                            utente.ruolo = ruolo.ruolo;
+                        }
+
+                        return Task.FromResult(utenti);
+                    }
+                }
+            );
+
+            await Task.WhenAll(task1, task2);
         }
 
         private static Dictionary<string, string>? FormatSocial(JsonElement? socialElement)

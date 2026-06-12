@@ -27,4 +27,11 @@ namespace TaskOption
         public required string NomeCache { get; set; }
         public required TimeSpan DurataCache { get; set; }
     }
+
+    public class CacheUpdate<T>
+    {
+        public required Func<T, Task<T>> Task { get; set; }
+        public required string NomeCache { get; set; }
+        public required TimeSpan DurataCache { get; set; }
+    }
 }
