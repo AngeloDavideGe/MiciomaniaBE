@@ -4,6 +4,7 @@ using UserForms;
 using TaskOption;
 using Utenti.Services;
 using AppTask.Services;
+using BackGroundName;
 
 namespace Utenti.Controllers
 {
@@ -12,15 +13,18 @@ namespace Utenti.Controllers
     public class UtentiController
     {
         private readonly UtentiService _utentiService;
+        private readonly BackGroundService _backgroundService;
         private readonly AppTaskService _task;
 
         public UtentiController(
           UtentiService utentiService,
-          AppTaskService task
+          AppTaskService task,
+          BackGroundService backgroundService
         )
         {
             _utentiService = utentiService;
             _task = task;
+            _backgroundService = backgroundService;
         }
 
         [HttpGet("get_all_utenti")]
@@ -38,11 +42,27 @@ namespace Utenti.Controllers
             [FromQuery] string email,
             [FromQuery] string password)
         {
-            return await _task.SingleTask(new SingleTaskOptions<UserDto?>
+            ActionResult<UserDto?> result = await _task.SingleTask(new SingleTaskOptions<UserDto?>
             {
                 Task = () => _utentiService.GetUtenteByCredentials(email, password),
                 ErrorMessage = "Utente non trovato"
             });
+
+            if (result.Result is OkObjectResult okResult && okResult.Value is UserDto user)
+            {
+                _backgroundService.FireAndForget(async sp =>
+                {
+                    UtentiService utentiService = sp.GetRequiredService<UtentiService>();
+
+                    await utentiService.PostUtentiCron(
+                        idUtente: user.id,
+                        azione: "Ha effettuato il Login",
+                        sezione: "Profilo"
+                    );
+                });
+            }
+
+            return result;
         }
 
         [HttpPost("post_utente")]
@@ -81,6 +101,17 @@ namespace Utenti.Controllers
         [HttpPut("update_ruolo_admin/{idUtente}")]
         public async Task<ActionResult> UpdateRuoloAdmin(string idUtente, [FromBody] UserRuoloUpdateForm ruoloForm)
         {
+            _backgroundService.FireAndForget(async sp =>
+            {
+                UtentiService utentiService = sp.GetRequiredService<UtentiService>();
+
+                await utentiService.PostUtentiCron(
+                    idUtente: idUtente,
+                    azione: $"Ha aggiornato il suo ruolo in {ruoloForm.ruolo}",
+                    sezione: "Admin"
+                );
+            });
+
             return await _task.SqlFunc(new SqlTaskOptions
             {
                 Sql = () => _utentiService.AggiornaRuoloAdmin(idUtente, ruoloForm),

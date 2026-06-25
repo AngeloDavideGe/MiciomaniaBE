@@ -1,4 +1,5 @@
 using AppTask.Services;
+using BackGroundName;
 using CacheName;
 using Data.ApplicationDbContext;
 using Interazioni.Services;
@@ -26,6 +27,7 @@ public static class BuilderService
         builder.Services.Configure<DropboxSettings>(builder.Configuration.GetSection("Dropbox"));
         builder.Services.AddScoped<AppTaskService>();
         builder.Services.AddScoped<CacheService>();
+        builder.Services.AddScoped<BackGroundService>();
         builder.Services.AddScoped<SquadreService>();
         builder.Services.AddScoped<PostsService>();
         builder.Services.AddScoped<MangaService>();

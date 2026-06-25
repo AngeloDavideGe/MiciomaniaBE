@@ -47,6 +47,18 @@ namespace Utenti.Services
             });
         }
 
+        public async Task PostUtentiCron(string idUtente, string azione, string sezione)
+        {
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $@"
+                    INSERT INTO crono_schema.cron_utenti 
+                    (""idUtente"", azione, sezione, created_at)
+                    VALUES 
+                    ({idUtente}, {azione}, {sezione}, {DateTime.UtcNow})
+                "
+            );
+        }
+
         public async Task<UserDto?> GetUtenteByCredentials(string email, string password)
         {
             return await (

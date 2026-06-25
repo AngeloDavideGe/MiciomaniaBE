@@ -11,6 +11,7 @@ using CanzoniUtenteModels;
 using MangaMiciomaniaModels;
 using MangaUtenteParModels;
 using InterazioniModels;
+using CronModels;
 
 namespace Data.ApplicationDbContext
 {
@@ -39,6 +40,8 @@ namespace Data.ApplicationDbContext
         public DbSet<MangaMiciomania> MangaMicio { get; set; }
         public DbSet<MangaUtentePar> MangaUserPar { get; set; }
 
+        public DbSet<CronUtenti> CronUtenti { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Mapping tabelle negli schemi
@@ -57,6 +60,8 @@ namespace Data.ApplicationDbContext
             modelBuilder.Entity<CanzoniUtente>().ToTable("canzoniutente", "parodie_schema");
             modelBuilder.Entity<MangaMiciomania>().ToTable("mangamiciomania", "parodie_schema");
             modelBuilder.Entity<MangaUtentePar>().ToTable("mangautentepar", "parodie_schema");
+
+            modelBuilder.Entity<CronUtenti>().ToTable("cron_utenti", "crono_schema");
 
             modelBuilder.Entity<Tweet>(entity =>
             {
@@ -150,6 +155,16 @@ namespace Data.ApplicationDbContext
                 entity.HasOne<User>()
                     .WithOne()
                     .HasForeignKey<MangaUtentePar>(g => g.idUtente)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CronUtenti>(entity =>
+            {
+                entity.HasKey(g => g.id);
+
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<CronUtenti>(g => g.idUtente)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }
