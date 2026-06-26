@@ -1,7 +1,9 @@
 using System.Text.Json;
 using AdminModels;
 using CacheName;
+using CronModels;
 using Data.ApplicationDbContext;
+using Library.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using TaskOption;
@@ -47,14 +49,16 @@ namespace Utenti.Services
             });
         }
 
-        public async Task PostUtentiCron(string idUtente, string azione, string sezione)
+        public async Task PostUtentiCron(string idUtente, string azione, SezioneCron sezione)
         {
+            string sezioneString = sezione.GetNameEnum();
+
             await _context.Database.ExecuteSqlInterpolatedAsync(
                 $@"
                     INSERT INTO crono_schema.cron_utenti 
                     (""idUtente"", azione, sezione, created_at)
                     VALUES 
-                    ({idUtente}, {azione}, {sezione}, {DateTime.UtcNow})
+                    ({idUtente}, {azione}, {sezioneString}, {DateTime.UtcNow})
                 "
             );
         }

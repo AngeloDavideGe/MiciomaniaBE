@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using Data.ApplicationDbContext;
 using GiocatoreModels;
 using SquadreView;
-using SquadraModels;
-using Microsoft.EntityFrameworkCore;
 using SquadreForms;
 using Squadre.Services;
 using AppTask.Services;
 using TaskOption;
+using BackGroundName;
+using CronModels;
 
 namespace Squadre.Controllers
 {
@@ -17,11 +16,13 @@ namespace Squadre.Controllers
     {
         private readonly SquadreService _squadreService;
         private readonly AppTaskService _tasks;
+        private readonly BackGroundService _backgroundService;
 
-        public SquadreController(SquadreService squadreService, AppTaskService tasks)
+        public SquadreController(SquadreService squadreService, AppTaskService tasks, BackGroundService backgroundService)
         {
             _squadreService = squadreService;
             _tasks = tasks;
+            _backgroundService = backgroundService;
         }
 
         [HttpGet("get_squadre")]
@@ -51,12 +52,28 @@ namespace Squadre.Controllers
             string idUtente,
             [FromBody] SquadreUtenteForm squadreUtenteForm)
         {
-            return await _tasks.SqlFunc(new SqlTaskOptions
+            ActionResult result = await _tasks.SqlFunc(new SqlTaskOptions
             {
                 Sql = () => _squadreService.UpdatePunteggioGiocatore(idUtente, squadreUtenteForm),
                 ErrorMessage = "Errore nell'aggiornamento del punteggio del giocatore",
                 SuccessMessage = "Punteggio del giocatore aggiornato con successo"
             });
+
+            if (result is OkObjectResult)
+            {
+                _backgroundService.FireAndForget(async sp =>
+                {
+                    SquadreService squadreService = sp.GetRequiredService<SquadreService>();
+
+                    await squadreService.PostUtentiCron(
+                        idUtente: idUtente,
+                        azione: $"Ha ottenuto {squadreUtenteForm.punteggio} punti ai mini-giochi",
+                        sezione: SezioneCron.Games
+                    );
+                });
+            }
+
+            return result;
         }
     }
 }

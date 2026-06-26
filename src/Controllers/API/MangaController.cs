@@ -5,6 +5,8 @@ using MangaForms;
 using TaskOption;
 using AppTask.Services;
 using Manga.Services;
+using BackGroundName;
+using CronModels;
 
 namespace Manga.Controllers
 {
@@ -14,11 +16,13 @@ namespace Manga.Controllers
     {
         private readonly MangaService _mangaService;
         private readonly AppTaskService _tasks;
+        private readonly BackGroundService _backgroundService;
 
-        public MangaController(MangaService mangaService, AppTaskService tasks)
+        public MangaController(MangaService mangaService, AppTaskService tasks, BackGroundService backgroundService)
         {
             _mangaService = mangaService;
             _tasks = tasks;
+            _backgroundService = backgroundService;
         }
 
         [HttpGet("get_all_manga")]
@@ -56,23 +60,55 @@ namespace Manga.Controllers
         [HttpPost("post_manga")]
         public async Task<ActionResult> PostManga([FromBody] MangaClass mangaForm)
         {
-            return await _tasks.SqlFunc(new SqlTaskOptions
+            ActionResult result = await _tasks.SqlFunc(new SqlTaskOptions
             {
                 Sql = () => _mangaService.AggiungiManga(mangaForm),
                 SuccessMessage = "Manga aggiunto con successo",
                 ErrorMessage = "Errore inserimento manga"
             });
+
+            if (result is OkObjectResult)
+            {
+                _backgroundService.FireAndForget(async sp =>
+                {
+                    MangaService mangaService = sp.GetRequiredService<MangaService>();
+
+                    await mangaService.PostUtentiCron(
+                        idUtente: "indykun",
+                        azione: $"Ha aggiunto un nuovo manga",
+                        sezione: SezioneCron.Manga
+                    );
+                });
+            }
+
+            return result;
         }
 
         [HttpPut("upsert_manga_preferiti/{idUtente}")]
         public async Task<ActionResult> UpdateMangaPreferiti(string idUtente, [FromBody] MangaUtenteForm nuoviManga)
         {
-            return await _tasks.SqlFunc(new SqlTaskOptions
+            ActionResult result = await _tasks.SqlFunc(new SqlTaskOptions
             {
                 Sql = () => _mangaService.UpsertManga(idUtente, nuoviManga),
                 SuccessMessage = $"Manga utente aggiornati per {idUtente}",
                 ErrorMessage = "Errore aggiornamento manga utente"
             });
+
+            if (result is OkObjectResult)
+            {
+                _backgroundService.FireAndForget(async sp =>
+                {
+                    MangaService mangaService = sp.GetRequiredService<MangaService>();
+
+                    await mangaService.PostUtentiCron(
+                        idUtente: idUtente,
+                        azione: $"Ha aggiornato i suoi manga preferiti",
+                        sezione: SezioneCron.Manga
+                    );
+                });
+            }
+
+            return result;
         }
     }
 }

@@ -6,6 +6,8 @@ using PostsForms;
 using TaskOption;
 using Posts.Services;
 using AppTask.Services;
+using BackGroundName;
+using CronModels;
 
 namespace Posts.Controllers
 {
@@ -15,11 +17,13 @@ namespace Posts.Controllers
     {
         private readonly PostsService _postsService;
         private readonly AppTaskService _tasks;
+        private readonly BackGroundService _backgroundService;
 
-        public PostsController(PostsService postsService, AppTaskService tasks)
+        public PostsController(PostsService postsService, AppTaskService tasks, BackGroundService backgroundService)
         {
             _postsService = postsService;
             _tasks = tasks;
+            _backgroundService = backgroundService;
         }
 
         [HttpGet("get_all_last_posts")]
@@ -63,12 +67,28 @@ namespace Posts.Controllers
         [HttpPost("post_tweet")]
         public async Task<ActionResult> PostTweet([FromBody] PostsUtenteForm postForm)
         {
-            return await _tasks.SqlFunc(new SqlTaskOptions
+            ActionResult result = await _tasks.SqlFunc(new SqlTaskOptions
             {
                 Sql = () => _postsService.AggungiTweet(postForm),
                 ErrorMessage = "Errore nella creazione del tweet",
                 SuccessMessage = "Tweet creato con successo"
             });
+
+            if (result is OkObjectResult)
+            {
+                _backgroundService.FireAndForget(async sp =>
+                {
+                    PostsService postsService = sp.GetRequiredService<PostsService>();
+
+                    await postsService.PostUtentiCron(
+                        idUtente: postForm.idUtente,
+                        azione: $"Ha aggiunto un nuovo post",
+                        sezione: SezioneCron.Posts
+                    );
+                });
+            }
+
+            return result;
         }
 
         [HttpPost("update_tweet/{id}")]

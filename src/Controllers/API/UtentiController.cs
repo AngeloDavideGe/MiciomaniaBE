@@ -5,6 +5,7 @@ using TaskOption;
 using Utenti.Services;
 using AppTask.Services;
 using BackGroundName;
+using CronModels;
 
 namespace Utenti.Controllers
 {
@@ -57,7 +58,7 @@ namespace Utenti.Controllers
                     await utentiService.PostUtentiCron(
                         idUtente: user.id,
                         azione: "Ha effettuato il Login",
-                        sezione: "Profilo"
+                        sezione: SezioneCron.Profilo
                     );
                 });
             }
@@ -99,25 +100,32 @@ namespace Utenti.Controllers
         }
 
         [HttpPut("update_ruolo_admin/{idUtente}")]
-        public async Task<ActionResult> UpdateRuoloAdmin(string idUtente, [FromBody] UserRuoloUpdateForm ruoloForm)
+        public async Task<ActionResult> UpdateRuoloAdmin(
+            string idUtente,
+            [FromBody] UserRuoloUpdateForm ruoloForm)
         {
-            _backgroundService.FireAndForget(async sp =>
-            {
-                UtentiService utentiService = sp.GetRequiredService<UtentiService>();
-
-                await utentiService.PostUtentiCron(
-                    idUtente: idUtente,
-                    azione: $"Ha aggiornato il suo ruolo in {ruoloForm.ruolo}",
-                    sezione: "Admin"
-                );
-            });
-
-            return await _task.SqlFunc(new SqlTaskOptions
+            ActionResult result = await _task.SqlFunc(new SqlTaskOptions
             {
                 Sql = () => _utentiService.AggiornaRuoloAdmin(idUtente, ruoloForm),
                 SuccessMessage = "Ruolo aggiornato con successo",
                 ErrorMessage = "Errore aggiornamento ruolo"
             });
+
+            if (result is OkObjectResult)
+            {
+                _backgroundService.FireAndForget(async sp =>
+                {
+                    UtentiService utentiService = sp.GetRequiredService<UtentiService>();
+
+                    await utentiService.PostUtentiCron(
+                        idUtente: idUtente,
+                        azione: $"Ha aggiornato il suo ruolo in {ruoloForm.ruolo}",
+                        sezione: SezioneCron.Admin
+                    );
+                });
+            }
+
+            return result;
         }
     }
 }

@@ -8,4 +8,13 @@ namespace CronModels
         public DateTime created_at { get; set; }
         public string sezione { get; set; } = "";
     }
+
+    public enum SezioneCron
+    {
+        Manga,
+        Posts,
+        Admin,
+        Games,
+        Profilo
+    }
 }

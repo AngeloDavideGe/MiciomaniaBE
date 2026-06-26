@@ -1,12 +1,11 @@
 namespace BackGroundName
 {
     public class BackGroundService(
-    IServiceProvider serviceProvider,
-    ILogger<BackGroundService> logger)
+        IServiceProvider serviceProvider,
+        ILogger<BackGroundService> logger)
     {
         private readonly IServiceProvider _serviceProvider = serviceProvider;
         private readonly ILogger<BackGroundService> _logger = logger;
-
 
         public void FireAndForget(Func<IServiceProvider, Task> action)
         {
