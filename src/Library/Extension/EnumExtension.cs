@@ -1,4 +1,4 @@
-namespace Library.Extensions
+namespace Library.Extensions.Enumeratore
 {
     public static class EnumExtensions
     {

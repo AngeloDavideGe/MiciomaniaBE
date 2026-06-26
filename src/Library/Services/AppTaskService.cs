@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TaskOption;
 
-namespace AppTask.Services
+namespace Library.Service.TaskServices
 {
     public class AppTaskService : ControllerBase
     {

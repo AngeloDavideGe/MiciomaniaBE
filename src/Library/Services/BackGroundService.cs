@@ -1,4 +1,4 @@
-namespace BackGroundName
+namespace Library.Service.BackGroundService
 {
     public class BackGroundService(
         IServiceProvider serviceProvider,

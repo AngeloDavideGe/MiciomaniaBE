@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using TaskOption;
 
-namespace CacheName
+namespace Library.Service.CacheService
 {
     public class CacheService
     {

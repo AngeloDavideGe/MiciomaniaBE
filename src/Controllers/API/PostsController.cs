@@ -5,8 +5,8 @@ using UserModels;
 using PostsForms;
 using TaskOption;
 using Posts.Services;
-using AppTask.Services;
-using BackGroundName;
+using Library.Service.TaskServices;
+using Library.Service.BackGroundService;
 using CronModels;
 
 namespace Posts.Controllers

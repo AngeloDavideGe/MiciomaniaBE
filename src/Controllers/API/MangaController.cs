@@ -3,9 +3,9 @@ using MangaViews;
 using MangaModels;
 using MangaForms;
 using TaskOption;
-using AppTask.Services;
+using Library.Service.TaskServices;
 using Manga.Services;
-using BackGroundName;
+using Library.Service.BackGroundService;
 using CronModels;
 
 namespace Manga.Controllers
