@@ -15,6 +15,9 @@ namespace CronModels
         Posts,
         Admin,
         Games,
-        Profilo
+        Profilo,
+        MangaParodia,
+        CanzoneParodia,
+        Interazioni
     }
 }

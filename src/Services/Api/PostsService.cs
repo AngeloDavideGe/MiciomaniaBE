@@ -1,7 +1,5 @@
 using System.Text.Json;
-using CronModels;
 using Data.ApplicationDbContext;
-using Library.Extensions.Enumeratore;
 using Microsoft.EntityFrameworkCore;
 using PostsForms;
 using PostsViews;
@@ -32,18 +30,18 @@ namespace Posts.Services
                 ?? throw new Exception("Utente non trovato");
         }
 
-        public async Task<List<Tweet>> GetUserTweets(string idUtente)
+        public async Task<List<Tweet>> GetUserTweets(string idUtente, int maxElems)
         {
             await using var context = _contextFactory.CreateDbContext();
 
             return await context.Tweets
                 .Where((Tweet t) => t.idUtente == idUtente)
                 .OrderByDescending((Tweet t) => t.dataCreazione)
-                .Take(20)
+                .Take(maxElems)
                 .ToListAsync();
         }
 
-        public Task<List<TweetExtend>> GetLastPosts(DateTime time)
+        public Task<List<TweetExtend>> GetLastPosts(DateTime time, int maxElems)
         {
             return _context.Tweets
                 .Where((Tweet tweet) => tweet.dataCreazione > time)
@@ -62,6 +60,7 @@ namespace Posts.Services
                         userName = user.nome
                     }
                 )
+                .Take(maxElems)
                 .ToListAsync();
         }
 
@@ -103,20 +102,6 @@ namespace Posts.Services
 
             _context.Tweets.Remove(tweet);
             await _context.SaveChangesAsync();
-        }
-
-        public async Task PostUtentiCron(string idUtente, string azione, SezioneCron sezione)
-        {
-            string sezioneString = sezione.GetNameEnum();
-
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $@"
-                    INSERT INTO crono_schema.cron_utenti 
-                    (""idUtente"", azione, sezione, created_at)
-                    VALUES 
-                    ({idUtente}, {azione}, {sezioneString}, {DateTime.UtcNow})
-                "
-            );
         }
 
         // -----------------------------------------------------------------------

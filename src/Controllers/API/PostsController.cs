@@ -8,6 +8,7 @@ using Posts.Services;
 using Library.Service.TaskServices;
 using Library.Service.BackGroundService;
 using CronModels;
+using Cron.Services;
 
 namespace Posts.Controllers
 {
@@ -27,22 +28,26 @@ namespace Posts.Controllers
         }
 
         [HttpGet("get_all_last_posts")]
-        public async Task<ActionResult<List<TweetExtend>>> GetAllLastPosts([FromQuery] DateTime time)
+        public async Task<ActionResult<List<TweetExtend>>> GetAllLastPosts(
+            [FromQuery] DateTime time,
+            [FromQuery] int maxElems)
         {
             return await _tasks.SingleTask(new SingleTaskOptions<List<TweetExtend>>
             {
-                Task = () => _postsService.GetLastPosts(time),
+                Task = () => _postsService.GetLastPosts(time, maxElems),
                 ErrorMessage = "Errore nel recupero dei ultimi post",
             });
         }
 
         [HttpGet("get_profilo")]
-        public async Task<ActionResult<Profilo>> GetProfiloById([FromQuery] string idUtente)
+        public async Task<ActionResult<Profilo>> GetProfiloById(
+            [FromQuery] string idUtente,
+            [FromQuery] int maxElems)
         {
             return await _tasks.MultiTask(new MultiTaskOptions<User, List<Tweet>, Profilo>
             {
                 Task1 = () => _postsService.GetUser(idUtente),
-                Task2 = () => _postsService.GetUserTweets(idUtente),
+                Task2 = () => _postsService.GetUserTweets(idUtente, maxElems),
                 ResultFactory = (user, tweets) => new Profilo(
                     new UserPost
                     {
@@ -78,9 +83,9 @@ namespace Posts.Controllers
             {
                 _backgroundService.FireAndForget(async sp =>
                 {
-                    PostsService postsService = sp.GetRequiredService<PostsService>();
+                    CronService cronService = sp.GetRequiredService<CronService>();
 
-                    await postsService.PostUtentiCron(
+                    await cronService.PostUtentiCron(
                         idUtente: postForm.idUtente,
                         azione: $"Ha aggiunto un nuovo post",
                         sezione: SezioneCron.Posts

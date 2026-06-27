@@ -96,19 +96,5 @@ namespace Manga.Services
 
             await _context.SaveChangesAsync();
         }
-
-        public async Task PostUtentiCron(string idUtente, string azione, SezioneCron sezione)
-        {
-            string sezioneString = sezione.GetNameEnum();
-
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $@"
-                    INSERT INTO crono_schema.cron_utenti 
-                    (""idUtente"", azione, sezione, created_at)
-                    VALUES 
-                    ({idUtente}, {azione}, {sezioneString}, {DateTime.UtcNow})
-                "
-            );
-        }
     }
 }

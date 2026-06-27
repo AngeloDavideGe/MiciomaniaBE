@@ -7,6 +7,7 @@ using Library.Service.TaskServices;
 using TaskOption;
 using Library.Service.BackGroundService;
 using CronModels;
+using Cron.Services;
 
 namespace Squadre.Controllers
 {
@@ -63,9 +64,9 @@ namespace Squadre.Controllers
             {
                 _backgroundService.FireAndForget(async sp =>
                 {
-                    SquadreService squadreService = sp.GetRequiredService<SquadreService>();
+                    CronService cronService = sp.GetRequiredService<CronService>();
 
-                    await squadreService.PostUtentiCron(
+                    await cronService.PostUtentiCron(
                         idUtente: idUtente,
                         azione: $"Ha ottenuto {squadreUtenteForm.punteggio} punti ai mini-giochi",
                         sezione: SezioneCron.Games

@@ -6,6 +6,7 @@ using Utenti.Services;
 using Library.Service.TaskServices;
 using Library.Service.BackGroundService;
 using CronModels;
+using Cron.Services;
 
 namespace Utenti.Controllers
 {
@@ -20,8 +21,7 @@ namespace Utenti.Controllers
         public UtentiController(
           UtentiService utentiService,
           AppTaskService task,
-          BackGroundService backgroundService
-        )
+          BackGroundService backgroundService)
         {
             _utentiService = utentiService;
             _task = task;
@@ -53,9 +53,9 @@ namespace Utenti.Controllers
             {
                 _backgroundService.FireAndForget(async sp =>
                 {
-                    UtentiService utentiService = sp.GetRequiredService<UtentiService>();
+                    CronService cronService = sp.GetRequiredService<CronService>();
 
-                    await utentiService.PostUtentiCron(
+                    await cronService.PostUtentiCron(
                         idUtente: user.id,
                         azione: "Ha effettuato il Login",
                         sezione: SezioneCron.Profilo
@@ -115,9 +115,9 @@ namespace Utenti.Controllers
             {
                 _backgroundService.FireAndForget(async sp =>
                 {
-                    UtentiService utentiService = sp.GetRequiredService<UtentiService>();
+                    CronService cronService = sp.GetRequiredService<CronService>();
 
-                    await utentiService.PostUtentiCron(
+                    await cronService.PostUtentiCron(
                         idUtente: idUtente,
                         azione: $"Ha aggiornato il suo ruolo in {ruoloForm.ruolo}",
                         sezione: SezioneCron.Admin

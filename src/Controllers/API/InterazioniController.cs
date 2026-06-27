@@ -6,6 +6,9 @@ using InterazioniForms;
 using TaskOption;
 using Interazioni.Services;
 using Library.Service.TaskServices;
+using Library.Service.BackGroundService;
+using Cron.Services;
+using CronModels;
 
 namespace Interazioni.Controllers
 {
@@ -14,13 +17,16 @@ namespace Interazioni.Controllers
     public class InterazioniController
     {
         private readonly InterazioniService _interazioniService;
+        private readonly BackGroundService _backgroundService;
         private readonly AppTaskService _task;
 
         public InterazioniController(
             InterazioniService interazioniService,
+            BackGroundService backgroundService,
             AppTaskService taskService)
         {
             _interazioniService = interazioniService;
+            _backgroundService = backgroundService;
             _task = taskService;
         }
 
@@ -74,12 +80,28 @@ namespace Interazioni.Controllers
         [HttpPut("upsert_interazione")]
         public async Task<ActionResult> UpsertInterazione([FromBody] InterazioniPut input)
         {
-            return await _task.SqlFunc(new SqlTaskOptions
+            ActionResult result = await _task.SqlFunc(new SqlTaskOptions
             {
                 Sql = () => _interazioniService.UpsertInterazione(input),
                 SuccessMessage = "Interazione aggiornata con successo",
                 ErrorMessage = "Errore aggiornamento interazione"
             });
+
+            if (result is OkObjectResult)
+            {
+                _backgroundService.FireAndForget(async sp =>
+                {
+                    CronService cronService = sp.GetRequiredService<CronService>();
+
+                    await cronService.PostUtentiCron(
+                        idUtente: input.user1,
+                        azione: $"Ha interagito con {input.user2}",
+                        sezione: SezioneCron.Interazioni
+                    );
+                });
+            }
+
+            return result;
         }
     }
 }

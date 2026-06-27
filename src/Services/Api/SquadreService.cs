@@ -1,7 +1,5 @@
-using CronModels;
 using Data.ApplicationDbContext;
 using GiocatoreModels;
-using Library.Extensions.Enumeratore;
 using Microsoft.EntityFrameworkCore;
 using SquadraModels;
 using SquadreForms;
@@ -59,20 +57,6 @@ namespace Squadre.Services
                     UPDATE squadre_schema.giocatori
                     SET punteggio = punteggio + {squadreUtenteForm.punteggio}
                     WHERE ""idUtente"" = {idUtente};
-                "
-            );
-        }
-
-        public async Task PostUtentiCron(string idUtente, string azione, SezioneCron sezione)
-        {
-            string sezioneString = sezione.GetNameEnum();
-
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $@"
-                    INSERT INTO crono_schema.cron_utenti 
-                    (""idUtente"", azione, sezione, created_at)
-                    VALUES 
-                    ({idUtente}, {azione}, {sezioneString}, {DateTime.UtcNow})
                 "
             );
         }

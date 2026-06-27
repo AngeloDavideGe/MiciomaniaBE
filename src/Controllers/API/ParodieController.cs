@@ -8,6 +8,9 @@ using CanzoniMiciomaniaModels;
 using TaskOption;
 using Parodie.Services;
 using Library.Service.TaskServices;
+using Library.Service.BackGroundService;
+using Cron.Services;
+using CronModels;
 
 namespace Utenti.Controllers
 {
@@ -16,11 +19,16 @@ namespace Utenti.Controllers
     public class ParodieController
     {
         private readonly ParodieService _parodieService;
+        private readonly BackGroundService _backgroundService;
         private readonly AppTaskService _tasks;
 
-        public ParodieController(ParodieService ParodieService, AppTaskService tasks)
+        public ParodieController(
+            ParodieService ParodieService,
+            BackGroundService backgroundService,
+            AppTaskService tasks)
         {
             _parodieService = ParodieService;
+            _backgroundService = backgroundService;
             _tasks = tasks;
         }
 
@@ -63,12 +71,28 @@ namespace Utenti.Controllers
         [HttpPut("upsert_manga_o_canzone/{id}")]
         public async Task<ActionResult> UpdateUser(string id, [FromBody] ParodieUtenteForm parodieForm)
         {
-            return await _tasks.SqlFunc(new SqlTaskOptions
+            ActionResult result = await _tasks.SqlFunc(new SqlTaskOptions
             {
                 Sql = () => _parodieService.updateParodieUtente(id, parodieForm),
                 SuccessMessage = "Parodia aggiornata con successo",
                 ErrorMessage = "Errore update parodia"
             });
+
+            if (result is OkObjectResult)
+            {
+                _backgroundService.FireAndForget(async sp =>
+                {
+                    CronService cronService = sp.GetRequiredService<CronService>();
+
+                    await cronService.PostUtentiCron(
+                        idUtente: id,
+                        azione: $"Ha aggiornato un/una {parodieForm.tipo} parodia",
+                        sezione: parodieForm.tipo == "Manga" ? SezioneCron.MangaParodia : SezioneCron.CanzoneParodia
+                    );
+                });
+            }
+
+            return result;
         }
     }
 }

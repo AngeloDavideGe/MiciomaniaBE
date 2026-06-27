@@ -7,6 +7,7 @@ using Library.Service.TaskServices;
 using Manga.Services;
 using Library.Service.BackGroundService;
 using CronModels;
+using Cron.Services;
 
 namespace Manga.Controllers
 {
@@ -71,9 +72,9 @@ namespace Manga.Controllers
             {
                 _backgroundService.FireAndForget(async sp =>
                 {
-                    MangaService mangaService = sp.GetRequiredService<MangaService>();
+                    CronService cronService = sp.GetRequiredService<CronService>();
 
-                    await mangaService.PostUtentiCron(
+                    await cronService.PostUtentiCron(
                         idUtente: "indykun",
                         azione: $"Ha aggiunto un nuovo manga",
                         sezione: SezioneCron.Manga
@@ -98,9 +99,9 @@ namespace Manga.Controllers
             {
                 _backgroundService.FireAndForget(async sp =>
                 {
-                    MangaService mangaService = sp.GetRequiredService<MangaService>();
+                    CronService cronService = sp.GetRequiredService<CronService>();
 
-                    await mangaService.PostUtentiCron(
+                    await cronService.PostUtentiCron(
                         idUtente: idUtente,
                         azione: $"Ha aggiornato i suoi manga preferiti",
                         sezione: SezioneCron.Manga
