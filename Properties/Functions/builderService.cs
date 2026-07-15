@@ -10,6 +10,7 @@ using Posts.Services;
 using Squadre.Services;
 using Utenti.Services;
 using Views.DropboxSettings;
+using Cron.Services;
 
 public static class BuilderService
 {
@@ -34,6 +35,7 @@ public static class BuilderService
         builder.Services.AddScoped<ParodieService>();
         builder.Services.AddScoped<InterazioniService>();
         builder.Services.AddScoped<UtentiService>();
+        builder.Services.AddScoped<CronService>();
         builder.Services.AddHttpClient();
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();

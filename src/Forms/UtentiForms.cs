@@ -11,5 +11,6 @@ namespace UserForms
     public class UserRuoloUpdateForm
     {
         public string ruolo { get; set; } = "";
+        public List<string> permessi { get; set; } = new List<string>();
     }
 }

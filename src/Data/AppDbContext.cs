@@ -44,9 +44,23 @@ namespace Data.ApplicationDbContext
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Mapping tabelle negli schemi
             modelBuilder.Entity<User>().ToTable("utenti", "utenti_schema");
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(u => u.id);
+            });
+
             modelBuilder.Entity<Admin>().ToTable("admin", "utenti_schema");
+            modelBuilder.Entity<Admin>(entity =>
+            {
+                entity.HasKey(a => a.idUtente);
+
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<Admin>(a => a.idUtente)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<Tweet>().ToTable("tweet", "utenti_schema");
             modelBuilder.Entity<InterazioniDB>().ToTable("interazioni", "utenti_schema");
 
@@ -63,6 +77,7 @@ namespace Data.ApplicationDbContext
 
             modelBuilder.Entity<CronUtenti>().ToTable("cron_utenti", "crono_schema");
 
+
             modelBuilder.Entity<Tweet>(entity =>
             {
                 entity.HasKey(t => t.id);
@@ -73,15 +88,6 @@ namespace Data.ApplicationDbContext
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<Admin>(entity =>
-            {
-                entity.HasKey(a => a.idUtente);
-
-                entity.HasOne<User>()
-                    .WithOne()
-                    .HasForeignKey<Admin>(a => a.idUtente)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
 
             modelBuilder.Entity<MangaUtente>(entity =>
             {

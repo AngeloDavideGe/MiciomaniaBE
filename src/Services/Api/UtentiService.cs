@@ -64,24 +64,26 @@ namespace Utenti.Services
                 select new UserDto
                 {
                     id = u.id,
+                    admin = new AdminDto
+                    {
+                        ruolo = admin != null ? admin.ruolo : "user",
+                        permessi = admin.permessi
+                    },
                     credenziali = new CredenzialiDto
                     {
                         nome = u.nome,
                         email = u.email,
                         password = u.password,
                         profilePic = u.profilePic,
-                        ruolo = admin != null ? admin.ruolo : "user"
                     },
                     profile = new ProfileDto
                     {
                         bio = u.bio,
-                        telefono = u.telefono,
                         compleanno = u.compleanno,
                         social = FormatSocial(u.social)
                     },
                     iscrizione = new IscrizioneDto
                     {
-                        stato = u.stato,
                         squadra = giocatore != null ? giocatore.squadra : null,
                         provincia = u.provincia,
                         punteggio = giocatore != null ? giocatore.punteggio : null
@@ -118,10 +120,8 @@ namespace Utenti.Services
                     {userForm.credenziali.email},
                     {userForm.credenziali.password},
                     {userForm.credenziali.profilePic},
-                    {userForm.iscrizione.stato},
                     {userForm.iscrizione.provincia},
                     {userForm.profile.bio},
-                    {userForm.profile.telefono},
                     {userForm.iscrizione.squadra},
                     {compleannoParam},
                     {JsonSerializer.Serialize(userForm.profile.social)}
@@ -140,7 +140,7 @@ namespace Utenti.Services
         {
             Task task1 = _context.Database.ExecuteSqlInterpolatedAsync(
                 $@"UPDATE utenti_schema.admin 
-                SET ruolo = {ruolo.ruolo} 
+                SET ruolo = {ruolo.ruolo}, permessi = {JsonSerializer.Serialize(ruolo.permessi)} 
                 WHERE ""idUtente"" = {idUtente};"
             );
 
