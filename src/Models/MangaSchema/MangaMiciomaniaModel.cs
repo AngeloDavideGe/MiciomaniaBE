@@ -1,6 +1,6 @@
-namespace MangaModels
+namespace MangaMiciomaniaModels
 {
-    public class MangaClass
+    public class MangaMiciomania
     {
         public int id { get; set; }
         public string nome { get; set; } = "";

@@ -8,6 +8,7 @@ using MangaUtenteModels;
 using MangaViews;
 using Microsoft.EntityFrameworkCore;
 using TaskOption;
+using MangaMiciomaniaModels;
 
 namespace Manga.Services
 {
@@ -45,10 +46,24 @@ namespace Manga.Services
 
         public async Task<List<MangaClass>> GetAllMangaCache()
         {
+            await using var context = _contextFactory.CreateDbContext();
+
             return await _cacheService.GetOrCreate(new CacheOptions<List<MangaClass>>
             {
-                Task = () => _context.ListaManga.ToListAsync(),
+                Task = () => context.ListaManga.ToListAsync(),
                 NomeCache = "AllManga",
+                DurataCache = TimeSpan.FromHours(2)
+            });
+        }
+
+        public async Task<List<MangaMiciomania>> GetAllMangaMiciomaniaCache()
+        {
+            await using var context = _contextFactory.CreateDbContext();
+
+            return await _cacheService.GetOrCreate(new CacheOptions<List<MangaMiciomania>>
+            {
+                Task = () => context.MangaMiciomania.ToListAsync(),
+                NomeCache = "AllMangaMiciomania",
                 DurataCache = TimeSpan.FromHours(2)
             });
         }
@@ -62,7 +77,8 @@ namespace Manga.Services
                 genere = mangaForm.genere,
                 copertina = mangaForm.copertina,
                 path = mangaForm.path,
-                completato = mangaForm.completato
+                completato = mangaForm.completato,
+                capitoli = mangaForm.capitoli
             };
 
             _context.ListaManga.Add(newManga);

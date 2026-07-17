@@ -1,3 +1,4 @@
+using MangaMiciomaniaModels;
 using MangaModels;
 
 namespace MangaViews
@@ -5,12 +6,14 @@ namespace MangaViews
     public class MangaEPreferiti
     {
         public List<MangaClass> listaManga { get; set; }
+        public List<MangaMiciomania> micioManga { get; set; }
         public MangaUtenteGet? mangaUtente { get; set; }
 
-        public MangaEPreferiti(List<MangaClass> l, MangaUtenteGet? m)
+        public MangaEPreferiti(List<MangaClass> lm, List<MangaMiciomania> mm, MangaUtenteGet? mu)
         {
-            listaManga = l;
-            mangaUtente = m;
+            listaManga = lm;
+            micioManga = mm;
+            mangaUtente = mu;
         }
     }
 

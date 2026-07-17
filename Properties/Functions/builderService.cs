@@ -5,7 +5,6 @@ using Data.ApplicationDbContext;
 using Interazioni.Services;
 using Manga.Services;
 using Microsoft.EntityFrameworkCore;
-using Parodie.Services;
 using Posts.Services;
 using Squadre.Services;
 using Utenti.Services;
@@ -32,7 +31,6 @@ public static class BuilderService
         builder.Services.AddScoped<SquadreService>();
         builder.Services.AddScoped<PostsService>();
         builder.Services.AddScoped<MangaService>();
-        builder.Services.AddScoped<ParodieService>();
         builder.Services.AddScoped<InterazioniService>();
         builder.Services.AddScoped<UtentiService>();
         builder.Services.AddScoped<CronService>();

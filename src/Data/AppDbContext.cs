@@ -6,12 +6,9 @@ using MangaUtenteModels;
 using SquadraModels;
 using AdminModels;
 using MangaModels;
-using CanzoniMiciomaniaModels;
-using CanzoniUtenteModels;
-using MangaMiciomaniaModels;
-using MangaUtenteParModels;
 using InterazioniModels;
 using CronModels;
+using MangaMiciomaniaModels;
 
 namespace Data.ApplicationDbContext
 {
@@ -29,16 +26,11 @@ namespace Data.ApplicationDbContext
         // manga_schema
         public DbSet<MangaUtente> MangaUtenti { get; set; }
         public DbSet<MangaClass> ListaManga { get; set; }
+        public DbSet<MangaMiciomania> MangaMiciomania { get; set; }
 
         // squadre_schema
         public DbSet<Squadra> Squadre { get; set; }
         public DbSet<Giocatore> Giocatori { get; set; }
-
-        // parodie_schema
-        public DbSet<CanzoniMiciomania> CanzoniMicio { get; set; }
-        public DbSet<CanzoniUtente> CanzoniUser { get; set; }
-        public DbSet<MangaMiciomania> MangaMicio { get; set; }
-        public DbSet<MangaUtentePar> MangaUserPar { get; set; }
 
         public DbSet<CronUtenti> CronUtenti { get; set; }
 
@@ -62,22 +54,6 @@ namespace Data.ApplicationDbContext
             });
 
             modelBuilder.Entity<Tweet>().ToTable("tweet", "utenti_schema");
-            modelBuilder.Entity<InterazioniDB>().ToTable("interazioni", "utenti_schema");
-
-            modelBuilder.Entity<MangaUtente>().ToTable("mangautente", "manga_schema");
-            modelBuilder.Entity<MangaClass>().ToTable("listamanga", "manga_schema");
-
-            modelBuilder.Entity<Squadra>().ToTable("squadre", "squadre_schema");
-            modelBuilder.Entity<Giocatore>().ToTable("giocatori", "squadre_schema");
-
-            modelBuilder.Entity<CanzoniMiciomania>().ToTable("canzonimiciomania", "parodie_schema");
-            modelBuilder.Entity<CanzoniUtente>().ToTable("canzoniutente", "parodie_schema");
-            modelBuilder.Entity<MangaMiciomania>().ToTable("mangamiciomania", "parodie_schema");
-            modelBuilder.Entity<MangaUtentePar>().ToTable("mangautentepar", "parodie_schema");
-
-            modelBuilder.Entity<CronUtenti>().ToTable("cron_utenti", "crono_schema");
-
-
             modelBuilder.Entity<Tweet>(entity =>
             {
                 entity.HasKey(t => t.id);
@@ -87,6 +63,31 @@ namespace Data.ApplicationDbContext
                     .HasForeignKey(t => t.idUtente)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+
+            modelBuilder.Entity<MangaClass>().ToTable("listamanga", "manga_schema");
+
+            modelBuilder.Entity<MangaMiciomania>().ToTable("mangamiciomania", "manga_schema");
+            modelBuilder.Entity<MangaMiciomania>(entity =>
+            {
+                entity.HasKey(t => t.id);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(t => t.autore)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+
+            modelBuilder.Entity<InterazioniDB>().ToTable("interazioni", "utenti_schema");
+
+            modelBuilder.Entity<MangaUtente>().ToTable("mangautente", "manga_schema");
+
+            modelBuilder.Entity<Squadra>().ToTable("squadre", "squadre_schema");
+            modelBuilder.Entity<Giocatore>().ToTable("giocatori", "squadre_schema");
+
+            modelBuilder.Entity<CronUtenti>().ToTable("cron_utenti", "crono_schema");
+
+
 
 
             modelBuilder.Entity<MangaUtente>(entity =>
@@ -121,46 +122,6 @@ namespace Data.ApplicationDbContext
                 entity.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(i => i.user2)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            modelBuilder.Entity<CanzoniMiciomania>(entity =>
-            {
-                entity.HasKey(g => g.idUtente);
-
-                entity.HasOne<User>()
-                    .WithOne()
-                    .HasForeignKey<CanzoniMiciomania>(g => g.idUtente)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            modelBuilder.Entity<CanzoniUtente>(entity =>
-            {
-                entity.HasKey(g => g.idUtente);
-
-                entity.HasOne<User>()
-                    .WithOne()
-                    .HasForeignKey<CanzoniUtente>(g => g.idUtente)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            modelBuilder.Entity<MangaMiciomania>(entity =>
-            {
-                entity.HasKey(g => g.idUtente);
-
-                entity.HasOne<User>()
-                    .WithOne()
-                    .HasForeignKey<MangaMiciomania>(g => g.idUtente)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            modelBuilder.Entity<MangaUtentePar>(entity =>
-            {
-                entity.HasKey(g => g.idUtente);
-
-                entity.HasOne<User>()
-                    .WithOne()
-                    .HasForeignKey<MangaUtentePar>(g => g.idUtente)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

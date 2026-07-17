@@ -8,6 +8,7 @@ using Manga.Services;
 using Library.Service.BackGroundService;
 using CronModels;
 using Cron.Services;
+using MangaMiciomaniaModels;
 
 namespace Manga.Controllers
 {
@@ -26,34 +27,15 @@ namespace Manga.Controllers
             _backgroundService = backgroundService;
         }
 
-        [HttpGet("get_all_manga")]
-        public async Task<ActionResult<List<MangaClass>>> GetAllManga()
-        {
-            return await _tasks.SingleTask(new SingleTaskOptions<List<MangaClass>>
-            {
-                Task = _mangaService.GetAllMangaCache,
-                ErrorMessage = "Errore nel recupero dei manga"
-            });
-        }
-
-        [HttpGet("get_manga_preferiti")]
-        public async Task<ActionResult<MangaUtenteGet>> GetMangaPreferiti([FromQuery] string idUtente)
-        {
-            return await _tasks.SingleTask(new SingleTaskOptions<MangaUtenteGet>
-            {
-                Task = () => _mangaService.GetMangaUtente(idUtente),
-                ErrorMessage = "Errore nel recupero dei manga"
-            });
-        }
-
         [HttpGet("get_all_manga_e_preferiti")]
         public async Task<ActionResult<MangaEPreferiti>> GetAllMangaEPreferiti([FromQuery] string idUtente)
         {
-            return await _tasks.MultiTask(new MultiTaskOptions<List<MangaClass>, MangaUtenteGet, MangaEPreferiti>
+            return await _tasks.TripleTask(new TripleTaskOptions<List<MangaClass>, List<MangaMiciomania>, MangaUtenteGet, MangaEPreferiti>
             {
                 Task1 = _mangaService.GetAllMangaCache,
-                Task2 = () => _mangaService.GetMangaUtente(idUtente),
-                ResultFactory = (manga, preferiti) => new MangaEPreferiti(manga, preferiti),
+                Task2 = _mangaService.GetAllMangaMiciomaniaCache,
+                Task3 = () => _mangaService.GetMangaUtente(idUtente),
+                ResultFactory = (manga, miciomanga, preferiti) => new MangaEPreferiti(manga, miciomanga, preferiti),
                 ErrorMessage = "Errore nel recupero Manga e Preferiti"
             });
         }

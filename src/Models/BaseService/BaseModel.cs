@@ -14,6 +14,15 @@ namespace TaskOption
         public string ErrorMessage { get; set; } = "Errore interno del server";
     }
 
+    public class TripleTaskOptions<T1, T2, T3, TResult>
+    {
+        public required Func<Task<T1>> Task1 { get; set; }
+        public required Func<Task<T2>> Task2 { get; set; }
+        public required Func<Task<T3>> Task3 { get; set; }
+        public required Func<T1, T2, T3, TResult> ResultFactory { get; set; }
+        public string ErrorMessage { get; set; } = "Errore interno del server";
+    }
+
     public class SqlTaskOptions
     {
         public required Func<Task> Sql { get; set; }
